@@ -243,9 +243,8 @@ int main()
         totalPlaneWeight = totalPassengerWeight + totalCrewWeight;
 
         planes[planeID - 1][4] = totalPlaneWeight;
-         
         
-
+    }
         printf("Enter Departure Airport: ");
         scanf("%d", &departureAirport);
 
@@ -256,8 +255,6 @@ int main()
         scanf("%d", &arrivalAirport);
 
         planes[planeID - 1][2] = arrivalAirport;
-    }
-
     //NEED TO IMPLEMENT THE SENDING TO ATC PART
 
 
