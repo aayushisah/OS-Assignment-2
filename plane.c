@@ -208,16 +208,6 @@ int main()
         // Calculate the total weight of the plane
         int totalPlaneWeight = totalLuggageWeight + totalPassengerWeight + totalCrewWeight;
         planes[planeID - 1][4] = totalPlaneWeight;
-
-        printf("Enter Departure Airport: ");
-        scanf("%d", &departureAirport);
-
-        planes[planeID - 1][3] = departureAirport;
-
-        printf("Enter Arrival Airport: ");
-        scanf("%d", &arrivalAirport);
-
-        planes[planeID - 1][2] = arrivalAirport;
     }
     else
     {
@@ -250,35 +240,17 @@ int main()
         totalPlaneWeight = totalPassengerWeight + totalCrewWeight;
 
         planes[planeID - 1][4] = totalPlaneWeight;
-        
     }
-        printf("Enter Departure Airport: ");
-        scanf("%d", &departureAirport);
+    printf("Enter Departure Airport: ");
+    scanf("%d", &departureAirport);
 
-        planes[planeID - 1][3] = departureAirport;
+    planes[planeID - 1][3] = departureAirport;
 
-        printf("Enter Arrival Airport: ");
-        scanf("%d", &arrivalAirport);
+    printf("Enter Arrival Airport: ");
+    scanf("%d", &arrivalAirport);
 
-        planes[planeID - 1][2] = arrivalAirport;
-    //NEED TO IMPLEMENT THE SENDING TO ATC PART
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    planes[planeID - 1][2] = arrivalAirport;
+    // NEED TO IMPLEMENT THE SENDING TO ATC PART
 
     // Send plane information through message queue
     message.msg_type = 1;
