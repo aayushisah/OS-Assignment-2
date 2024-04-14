@@ -13,7 +13,7 @@ struct PassengerInfo
 
 int main()
 {
-    int planeID;
+    int planeID, planeType, numOccupiedSeats;
 
     printf("Enter Plane ID: ");
     scanf("%d", &planeID);
