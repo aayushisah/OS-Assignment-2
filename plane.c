@@ -23,15 +23,15 @@ struct PlaneInfo
     int planeID;
     int planeType;
 
-    int numOccupiedSeats; // or total number of cargo
+    int numOccupiedSeats;   // or total number of cargo
     int totalLuggageWeight; // or total cargo weight
-    
+
     int totalPassengerWeight;
     int totalCrewWeight;
-    
+
     int departureAirport;
     int arrivalAirport;
-    
+
     int totalPlaneWeight;
 };
 
@@ -47,7 +47,6 @@ struct PassengerInfo
     int bodyWeight;
 };
 
-
 int main()
 {
     int planes[MAX_PASSENGERS][6]; // 2D array to store plane information
@@ -56,19 +55,19 @@ int main()
 
     // 0 - planeID
     // 1 - planeType
-    
+
     // 2 - arrivalAirport
     // 3 - departureAirport
 
     // 4 - totalPlaneWeight
-    //5 number of passengers (only for passenger planes)
+    // 5 number of passengers (only for passenger planes)
     /*
         m. The details of airport arrival,
-         airport departure, 
-         plane ID, 
-         total weight of the plane, 
-         type of plane and  
-         number of passengers (this does not include crew members and is relevant only for passenger planes)  need to be stored appropriately using some data structure (but definitely not using files, marks will be  deducted if you use files). 
+         airport departure,
+         plane ID,
+         total weight of the plane,
+         type of plane and
+         number of passengers (this does not include crew members and is relevant only for passenger planes)  need to be stored appropriately using some data structure (but definitely not using files, marks will be  deducted if you use files).
     */
 
     int planeID;
@@ -95,7 +94,6 @@ int main()
     printf("Enter Plane ID: ");
     scanf("%d", &planeID);
 
-
     // Validate the plane ID
     if (planeID < 1 || planeID > 10)
     {
@@ -108,7 +106,6 @@ int main()
 
     planes[planeID - 1][0] = planeID;
     planes[planeID - 1][1] = planeType;
-
 
     if (planeType == 1)
     {
@@ -124,9 +121,8 @@ int main()
             return 1;
         }
 
-        // Store the number of occupied seats in the planes array    
+        // Store the number of occupied seats in the planes array
         planes[planeID - 1][5] = numOccupiedSeats; // 5 is the index for number of passengers
-    
 
         // Create an array to store passenger information
         struct PassengerInfo passengerInfo[MAX_PASSENGERS];
@@ -185,11 +181,11 @@ int main()
                 printf("Passenger %d process with PID %d is ready\n", passengerCount + 1, getpid());
                 exit(0);
             }
-            else
-            {
-                // Parent process
-                close(passengerPipes[passengerCount][1]); // Close the write end of the pipe
-            }
+            // else
+            // {
+            //     // Parent process
+            //     close(passengerPipes[passengerCount][1]); // Close the write end of the pipe
+            // }
         }
 
         // Access and utilize passenger information in the plane process
@@ -211,6 +207,17 @@ int main()
 
         // Calculate the total weight of the plane
         int totalPlaneWeight = totalLuggageWeight + totalPassengerWeight + totalCrewWeight;
+        planes[planeID - 1][4] = totalPlaneWeight;
+
+        printf("Enter Departure Airport: ");
+        scanf("%d", &departureAirport);
+
+        planes[planeID - 1][3] = departureAirport;
+
+        printf("Enter Arrival Airport: ");
+        scanf("%d", &arrivalAirport);
+
+        planes[planeID - 1][2] = arrivalAirport;
     }
     else
     {
@@ -227,7 +234,7 @@ int main()
         printf("Enter Average Weight of Cargo Items: ");
         scanf("%d", &totalPassengerWeight); // this is actually the average weight
         // using the same variable as passengers
-        
+
         if (totalPassengerWeight < 1 || totalPassengerWeight > 100)
         {
             fprintf(stderr, "Invalid average weight of cargo items. Please enter a value between 1 and 100.\n");
@@ -249,7 +256,6 @@ int main()
         scanf("%d", &departureAirport);
 
         planes[planeID - 1][3] = departureAirport;
-
 
         printf("Enter Arrival Airport: ");
         scanf("%d", &arrivalAirport);
@@ -289,19 +295,10 @@ int main()
     // msgsnd to send message
     msgsnd(msgid, &message, sizeof(message), 0);
 
-
-
-
-
-
-
-
-
     // need to write the ATC program to receive the message and send the message to the departure airport
 
-
-    /*and the air traffic controller in turn sends a message  containing the plane details to the departure airport to begin the boarding/loading and departure  process via the single message queue described in 2.(c) later. For a cargo plane, boarding implies loading  of the cargo. 
-    */
+    /*and the air traffic controller in turn sends a message  containing the plane details to the departure airport to begin the boarding/loading and departure  process via the single message queue described in 2.(c) later. For a cargo plane, boarding implies loading  of the cargo.
+     */
 
     printf("Plane %d ready for departure from Airport %d to Airport %d.\n", planeID, departureAirport, arrivalAirport);
 
@@ -323,9 +320,8 @@ int main()
 
     printf("Deboarding/unloading process completed.\n");
 
-    /*Once the plane arrives at the arrival airport and the deboarding/unloading process is completed, the air  traffic controller process (after receiving a confirmation from the arrival airport) informs the plane  process that the deboarding/unloading is completed via the single message queue of 2.(c). For a cargo  plane, deboarding implies unloading the cargo. Upon receiving this intimation, the plane process  displays the following message before terminating itself. 
-    */
-
+    /*Once the plane arrives at the arrival airport and the deboarding/unloading process is completed, the air  traffic controller process (after receiving a confirmation from the arrival airport) informs the plane  process that the deboarding/unloading is completed via the single message queue of 2.(c). For a cargo  plane, deboarding implies unloading the cargo. Upon receiving this intimation, the plane process  displays the following message before terminating itself.
+     */
 
     printf("Plane %d has successfully traveled from Airport %d to Airport %d!\n", planeID, departureAirport, arrivalAirport);
 
