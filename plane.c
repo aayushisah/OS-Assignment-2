@@ -177,28 +177,27 @@ int main()
                 write(passengerPipes[passengerCount][1], &passengerInfo[passengerCount], sizeof(struct PassengerInfo));
                 close(passengerPipes[passengerCount][1]); // Close the write end of the pipe
 
-                // Add logic for passenger process here
+                // for checking concurrency
                 printf("Passenger %d process with PID %d is ready\n", passengerCount + 1, getpid());
                 exit(0);
             }
-            wait(NULL);
-            // else
-            // {
-            //     // Parent process
-            //     close(passengerPipes[passengerCount][1]); // Close the write end of the pipe
-            // }
+            // wait(NULL);
+            //  else
+            //  {
+            //      // Parent process
+            //      close(passengerPipes[passengerCount][1]); // Close the write end of the pipe
+            //  }
         }
 
         // Access and utilize passenger information in the plane process
         for (int i = 0; i < passengers; i++)
         {
             struct PassengerInfo receivedInfo;
-            close(passengerPipes[i][1]);
             read(passengerPipes[i][0], &receivedInfo, sizeof(struct PassengerInfo));
             close(passengerPipes[i][0]);
             totalLuggageWeight += receivedInfo.luggageWeight;
             totalPassengerWeight += receivedInfo.bodyWeight;
-            printf("Passenger %d - Luggage Weight: %d, Body Weight: %d\n", i + 1, receivedInfo.luggageWeight, receivedInfo.bodyWeight);
+            // printf("Passenger %d - Luggage Weight: %d, Body Weight: %d\n", i + 1, receivedInfo.luggageWeight, receivedInfo.bodyWeight);
         }
 
         // Calculate the total crew weight
