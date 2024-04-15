@@ -181,7 +181,7 @@ int main()
                 printf("Passenger %d process with PID %d is ready\n", passengerCount + 1, getpid());
                 exit(0);
             }
-            // wait(NULL);
+            wait(NULL);
             //  else
             //  {
             //      // Parent process
