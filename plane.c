@@ -42,12 +42,9 @@ struct NotificationMessage
 
 struct msg_buffer
 {
-    long msg_type; // the type of message
-    union
-    {
-        struct PlaneInfo plane;                  // the plane
-        struct NotificationMessage notification; // the notification
-    } data;
+    long msg_type;                           // the type of message
+    struct PlaneInfo plane;                  // the plane
+    struct NotificationMessage notification; // the notification
 };
 
 struct PassengerInfo
@@ -264,18 +261,18 @@ int main()
 
     // Send plane information through message queue
     message.msg_type = 1;
-    message.data.plane.planeID = planeID;
-    message.data.plane.planeType = planeType;
-    message.data.plane.numOccupiedSeats = numOccupiedSeats;
-    message.data.plane.totalLuggageWeight = totalLuggageWeight;
-    message.data.plane.totalPassengerWeight = totalPassengerWeight;
-    message.data.plane.totalCrewWeight = totalCrewWeight;
-    message.data.plane.departureAirport = departureAirport;
-    message.data.plane.arrivalAirport = arrivalAirport;
-    message.data.plane.totalPlaneWeight = totalPlaneWeight;
-
+    message.plane.planeID = planeID;
+    message.plane.planeType = planeType;
+    message.plane.numOccupiedSeats = numOccupiedSeats;
+    message.plane.totalLuggageWeight = totalLuggageWeight;
+    message.plane.totalPassengerWeight = totalPassengerWeight;
+    message.plane.totalCrewWeight = totalCrewWeight;
+    message.plane.departureAirport = departureAirport;
+    message.plane.arrivalAirport = arrivalAirport;
+    message.plane.totalPlaneWeight = totalPlaneWeight;
+    message.notification.completionStatus = 0;
     // msgsnd to send message
-    if (msgsnd(msgid, &message, sizeof(message.data.plane), 0) == -1)
+    if (msgsnd(msgid, &message, sizeof(message.plane), 0) == -1)
     {
         printf("error in sending message\n");
         exit(1);
@@ -286,11 +283,11 @@ int main()
     sleep(JOURNEY_TIME); // Journey duration
     // Receive notification from the plane process
     sleep(DEBOARDING_TIME); // deboarding/unloading process
-    msgrcv(msgid, &message, sizeof(message.data.notification), 1, 0);
+    msgrcv(msgid, &message, sizeof(message.notification), 1, 0);
 
     /*Once the plane arrives at the arrival airport and the deboarding/unloading process is completed, the air  traffic controller process (after receiving a confirmation from the arrival airport) informs the plane  process that the deboarding/unloading is completed via the single message queue of 2.(c). For a cargo  plane, deboarding implies unloading the cargo. Upon receiving this intimation, the plane process  displays the following message before terminating itself.
      */
-    if (receivedNotification.completionStatus == 1)
+    if (message.notification.completionStatus == 1)
         printf("Plane %d has successfully traveled from Airport %d to Airport %d!\n", planeID, departureAirport, arrivalAirport);
 
     // Destroy the message queue
