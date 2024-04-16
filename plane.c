@@ -16,6 +16,7 @@
 #define MAX_WEIGHT_PASSENGER 100
 #define AVG_WEIGHT_CREW 75
 #define BOARDING_TIME 3
+#define DEBOARDING_TIME 3
 #define JOURNEY_TIME 30
 
 struct PlaneInfo
@@ -34,11 +35,19 @@ struct PlaneInfo
 
     int totalPlaneWeight;
 };
+struct NotificationMessage
+{
+    int completionStatus; // This field can indicate the status of the deboarding/unloading process
+};
 
 struct msg_buffer
 {
-    long msg_type;
-    struct PlaneInfo plane;
+    long msg_type; // the type of message
+    union
+    {
+        struct PlaneInfo plane;                  // the plane
+        struct NotificationMessage notification; // the notification
+    } data;
 };
 
 struct PassengerInfo
@@ -49,7 +58,7 @@ struct PassengerInfo
 
 int main()
 {
-    int planes[MAX_PASSENGERS][6]; // 2D array to store plane information
+    // int planes[MAX_PASSENGERS][6]; // 2D array to store plane information (shrishti:not needed)
 
     // generate a mapping of which index of plane array stores wht info
 
@@ -61,14 +70,6 @@ int main()
 
     // 4 - totalPlaneWeight
     // 5 number of passengers (only for passenger planes)
-    /*
-        m. The details of airport arrival,
-         airport departure,
-         plane ID,
-         total weight of the plane,
-         type of plane and
-         number of passengers (this does not include crew members and is relevant only for passenger planes)  need to be stored appropriately using some data structure (but definitely not using files, marks will be  deducted if you use files).
-    */
 
     int planeID;
     int planeType;
@@ -84,15 +85,25 @@ int main()
     int msgid;
     struct msg_buffer message;
 
-    // ftok to generate unique key
-    key = ftok("plane", 65);
+    printf("Enter Plane ID: ");
+    scanf("%d", &planeID);
+
+    // ftok to generate unique key,planeID as unique key
+    key = ftok("plane", planeID);
+    if (key == -1)
+    {
+        printf("error in creating unique key\n");
+        exit(1);
+    }
 
     // msgget creates a message queue
     // and returns identifier
     msgid = msgget(key, 0666 | IPC_CREAT);
-
-    printf("Enter Plane ID: ");
-    scanf("%d", &planeID);
+    if (msgid == -1)
+    {
+        printf("error in creating message queue\n");
+        exit(1);
+    }
 
     // Validate the plane ID
     if (planeID < 1 || planeID > 10)
@@ -104,8 +115,8 @@ int main()
     printf("Enter Type of Plane: ");
     scanf("%d", &planeType);
 
-    planes[planeID - 1][0] = planeID;
-    planes[planeID - 1][1] = planeType;
+    // planes[planeID - 1][0] = planeID;  not needed
+    // planes[planeID - 1][1] = planeType;  mot needed
 
     if (planeType == 1)
     {
@@ -207,7 +218,7 @@ int main()
 
         // Calculate the total weight of the plane
         int totalPlaneWeight = totalLuggageWeight + totalPassengerWeight + totalCrewWeight;
-        planes[planeID - 1][4] = totalPlaneWeight;
+        // planes[planeID - 1][4] = totalPlaneWeight; not needed
     }
     else
     {
@@ -239,63 +250,48 @@ int main()
         // Calculate total plane weight
         totalPlaneWeight = totalPassengerWeight + totalCrewWeight;
 
-        planes[planeID - 1][4] = totalPlaneWeight;
+        // planes[planeID - 1][4] = totalPlaneWeight; not needed
     }
     printf("Enter Departure Airport: ");
     scanf("%d", &departureAirport);
 
-    planes[planeID - 1][3] = departureAirport;
+    // planes[planeID - 1][3] = departureAirport; not needed
 
     printf("Enter Arrival Airport: ");
     scanf("%d", &arrivalAirport);
 
-    planes[planeID - 1][2] = arrivalAirport;
-    // NEED TO IMPLEMENT THE SENDING TO ATC PART
+    // planes[planeID - 1][2] = arrivalAirport; not needed
 
     // Send plane information through message queue
     message.msg_type = 1;
-    message.plane.planeID = planeID;
-    message.plane.planeType = planeType;
-    message.plane.numOccupiedSeats = numOccupiedSeats;
-    message.plane.totalLuggageWeight = totalLuggageWeight;
-    message.plane.totalPassengerWeight = totalPassengerWeight;
-    message.plane.totalCrewWeight = totalCrewWeight;
-    message.plane.departureAirport = departureAirport;
-    message.plane.arrivalAirport = arrivalAirport;
-    message.plane.totalPlaneWeight = totalPlaneWeight;
+    message.data.plane.planeID = planeID;
+    message.data.plane.planeType = planeType;
+    message.data.plane.numOccupiedSeats = numOccupiedSeats;
+    message.data.plane.totalLuggageWeight = totalLuggageWeight;
+    message.data.plane.totalPassengerWeight = totalPassengerWeight;
+    message.data.plane.totalCrewWeight = totalCrewWeight;
+    message.data.plane.departureAirport = departureAirport;
+    message.data.plane.arrivalAirport = arrivalAirport;
+    message.data.plane.totalPlaneWeight = totalPlaneWeight;
 
     // msgsnd to send message
-    msgsnd(msgid, &message, sizeof(message), 0);
-
-    // need to write the ATC program to receive the message and send the message to the departure airport
-
-    /*and the air traffic controller in turn sends a message  containing the plane details to the departure airport to begin the boarding/loading and departure  process via the single message queue described in 2.(c) later. For a cargo plane, boarding implies loading  of the cargo.
-     */
-
-    printf("Plane %d ready for departure from Airport %d to Airport %d.\n", planeID, departureAirport, arrivalAirport);
-
-    // Simulate boarding/loading process
-    printf("Boarding/loading process begins...\n");
-    sleep(BOARDING_TIME);
-
-    printf("Plane %d departed from Airport %d to Airport %d.\n", planeID, departureAirport, arrivalAirport);
-
-    // Simulate journey duration
-    printf("Journey in progress...\n");
-    sleep(JOURNEY_TIME);
-
-    printf("Plane %d arrived at Airport %d.\n", planeID, arrivalAirport);
-
-    // Simulate deboarding/unloading process
-    printf("Deboarding/unloading process begins...\n");
-    sleep(BOARDING_TIME);
-
-    printf("Deboarding/unloading process completed.\n");
+    if (msgsnd(msgid, &message, sizeof(message.data.plane), 0) == -1)
+    {
+        printf("error in sending message\n");
+        exit(1);
+    }
+    // Simulate the boarding/loading process
+    sleep(BOARDING_TIME); // Boarding/loading process
+    // Simulate the plane journey duration
+    sleep(JOURNEY_TIME); // Journey duration
+    // Receive notification from the plane process
+    sleep(DEBOARDING_TIME); // deboarding/unloading process
+    msgrcv(msgid, &message, sizeof(message.data.notification), 1, 0);
 
     /*Once the plane arrives at the arrival airport and the deboarding/unloading process is completed, the air  traffic controller process (after receiving a confirmation from the arrival airport) informs the plane  process that the deboarding/unloading is completed via the single message queue of 2.(c). For a cargo  plane, deboarding implies unloading the cargo. Upon receiving this intimation, the plane process  displays the following message before terminating itself.
      */
-
-    printf("Plane %d has successfully traveled from Airport %d to Airport %d!\n", planeID, departureAirport, arrivalAirport);
+    if (receivedNotification.completionStatus == 1)
+        printf("Plane %d has successfully traveled from Airport %d to Airport %d!\n", planeID, departureAirport, arrivalAirport);
 
     // Destroy the message queue
     msgctl(msgid, IPC_RMID, NULL);
