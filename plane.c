@@ -18,6 +18,7 @@
 #define BOARDING_TIME 3
 #define DEBOARDING_TIME 3
 #define JOURNEY_TIME 30
+#define MSG_QUEUE_KEY 'atc_message_queue'
 
 struct PlaneInfo
 {
@@ -86,7 +87,7 @@ int main()
     scanf("%d", &planeID);
 
     // ftok to generate unique key,planeID as unique key
-    key = ftok("plane", planeID);
+    key = ftok("plane.c", 'x'); //change path to atc.c when that file is made for uniformity.
     if (key == -1)
     {
         printf("error in creating unique key\n");
@@ -130,7 +131,7 @@ int main()
         }
 
         // Store the number of occupied seats in the planes array
-        planes[planeID - 1][5] = numOccupiedSeats; // 5 is the index for number of passengers
+        // planes[planeID - 1][5] = numOccupiedSeats; // 5 is the index for number of passengers
 
         // Create an array to store passenger information
         struct PassengerInfo passengerInfo[MAX_PASSENGERS];
