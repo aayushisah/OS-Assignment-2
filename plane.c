@@ -87,7 +87,7 @@ int main()
     scanf("%d", &planeID);
 
     // ftok to generate unique key,planeID as unique key
-    key = ftok("plane.c", 'x'); //change path to atc.c when that file is made for uniformity.
+    key = ftok("plane.c", 'x'); // change path to atc.c when that file is made for uniformity.
     if (key == -1)
     {
         printf("error in creating unique key\n");
@@ -261,7 +261,7 @@ int main()
     // planes[planeID - 1][2] = arrivalAirport; not needed
 
     // Send plane information through message queue
-    message.msg_type = 1;
+    message.msg_type = planeID;
     message.plane.planeID = planeID;
     message.plane.planeType = planeType;
     message.plane.numOccupiedSeats = numOccupiedSeats;
