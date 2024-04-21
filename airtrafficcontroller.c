@@ -13,11 +13,11 @@
 
 int active_planes = 0; // Number of active planes
 
-struct p_message
+struct p_message //plane
 {
     long msg_type;
     int pl_ID;
-    int a_ID;
+    int a_ID;   // Departure ID
     int dest_ID; // Destination ID
     int status;  // 0: start, 1: finish
     int type;    // 0: departure, 1: arrival
@@ -25,7 +25,7 @@ struct p_message
     int kill;
 };
 
-struct a_message
+struct a_message //airport
 {
     long msg_type;
     int pl_ID;
