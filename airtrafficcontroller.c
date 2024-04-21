@@ -7,8 +7,8 @@
 #include <errno.h>
 #include <stdbool.h> // Include for boolean data type
 
-#define P_MSG_TYPE 1
-#define A_MSG_TYPE 2
+// #define P_MSG_TYPE 1
+// #define A_MSG_TYPE 2 
 #define TERMINATION_MSG_TYPE 3 // New termination message type
 
 int active_planes = 0; // Number of active planes
@@ -28,7 +28,7 @@ struct p_message //plane
 struct a_message //airport
 {
     long msg_type;
-    int plane_ID;
+    int pl_ID;
     int dep_ID;
     int arr_ID;
     int kill;
@@ -38,7 +38,7 @@ struct a_message //airport
 void process_amsg(struct a_message msg, int msg_id);
 void process_pmsg(struct p_message msg, int msg_id);
 void process_tmsg(int active_planes, int num_airports, int msg_id, bool termination_requested);
-void process_aft_termination_req(int plane_ID, int msg_id);
+void process_aft_termination_req(int pl_ID, int msg_id);
 
 int main()
 {
@@ -91,7 +91,7 @@ int main()
 
         if (termination_requested)
         {
-            process_aft_termination_req(a_msg.plane_ID, msg_id);
+            process_aft_termination_req(a_msg.pl_ID, msg_id);
             active_planes--;
         }
 
@@ -125,7 +125,7 @@ void process_amsg(struct a_message msg, int msg_id)
 
     // Prepare the p_message
     p_msg.msg_type = P_MSG_TYPE;
-    p_msg.plane_ID = msg.plane_ID;
+    p_msg.pl_ID = msg.pl_ID;
     p_msg.a_ID = msg.dep_ID;
     p_msg.dest_ID = msg.arr_ID;
     p_msg.status = 0; // Assuming it's a start status
@@ -140,7 +140,7 @@ void process_amsg(struct a_message msg, int msg_id)
         exit(1);
     }
 
-    printf("Forwarded a_message to airport.c with plane_ID: %d, a_ID: %d, and dest_ID: %d\n", msg.plane_ID, msg.dep_ID, msg.arr_ID);
+    printf("Forwarded a_message to airport.c with pl_ID: %d, a_ID: %d, and dest_ID: %d\n", msg.pl_ID, msg.dep_ID, msg.arr_ID);
 }
 
 // Function to process p_message
@@ -153,7 +153,7 @@ void process_pmsg(struct p_message msg, int msg_id)
     {
         // Prepare the new a_message
         a_msg.msg_type = A_MSG_TYPE;
-        a_msg.plane_ID = msg.plane_ID;
+        a_msg.pl_ID = msg.pl_ID;
         a_msg.dep_ID = 0;
         a_msg.arr_ID = msg.a_ID;
         a_msg.kill = 1;
@@ -167,7 +167,7 @@ void process_pmsg(struct p_message msg, int msg_id)
 
         active_planes--;
 
-        printf("Sent a_message with plane_ID: %d, dep_ID: 0, arr_ID: %d, and kill: 1\n", msg.plane_ID, msg.a_ID);
+        printf("Sent a_message with pl_ID: %d, dep_ID: 0, arr_ID: %d, and kill: 1\n", msg.pl_ID, msg.a_ID);
     }
 
     // Check if the received message has attributes { dest_ID = 0, status = 1, type = 0, action = 0, kill = 0}
@@ -209,7 +209,7 @@ void process_tmsg(int active_planes, int num_airports, int msg_id, bool terminat
             {
                 struct p_message p_msg;
                 p_msg.msg_type = P_MSG_TYPE;
-                p_msg.plane_ID = 0; // Set plane_ID to 0
+                p_msg.pl_ID = 0; // Set pl_ID to 0
                 p_msg.a_ID = airport_ID;
                 p_msg.dest_ID = 0;
                 p_msg.status = 0;
@@ -224,7 +224,7 @@ void process_tmsg(int active_planes, int num_airports, int msg_id, bool terminat
                     exit(1);
                 }
 
-                printf("Sent p_message with plane_ID: 0, a_ID: %d, kill: 1\n", airport_ID);
+                printf("Sent p_message with pl_ID: 0, a_ID: %d, kill: 1\n", airport_ID);
             }
 
             // Destroy the message queue using msgctl
@@ -239,13 +239,13 @@ void process_tmsg(int active_planes, int num_airports, int msg_id, bool terminat
 }
 
 // Function to process a_messages after termination
-void process_aft_termination_req(int plane_ID, int msg_id)
+void process_aft_termination_req(int pl_ID, int msg_id)
 {
     struct a_message a_msg;
 
     // Prepare the new a_message
     a_msg.msg_type = A_MSG_TYPE;
-    a_msg.plane_ID = plane_ID;
+    a_msg.pl_ID = pl_ID;
     a_msg.dep_ID = 0;
     a_msg.arr_ID = 0;
     a_msg.kill = 2;
@@ -257,5 +257,5 @@ void process_aft_termination_req(int plane_ID, int msg_id)
         exit(1);
     }
 
-    printf("Processed a_message after termination with plane_ID: %d and kill: 2\n", plane_ID);
+    printf("Processed a_message after termination with plane_ID: %d and kill: 2\n", pl_ID);
 }

@@ -53,6 +53,7 @@ int handleDeparture(struct DepartureArgs departure){
     int airportNumber = departure.message.plane.departureAirport;
 
     //mutex lock here
+    
 
     //find best fit runway
     for(int i = 1; i <= runwaysCount; i++){
