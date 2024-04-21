@@ -8,6 +8,8 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 
+#define A_MSG_TYPE 2 // planes
+
 #define MAX_PASSENGERS 10
 #define MAX_CARGO_ITEMS 100
 #define MAX_CREW_MEMBERS 7
@@ -19,6 +21,18 @@
 #define DEBOARDING_TIME 3
 #define JOURNEY_TIME 30
 #define MSG_QUEUE_KEY 'atc_message_queue'
+
+struct a_message
+{
+    long msg_type;  // plane's message type always 2
+    int pl_ID;      // ID of present plane
+    int dep_ID;     // departure airport
+    int arr_ID;     // arrival airport
+    int tot_weight; // total weight of plane
+    int plane_type;
+    int passenger_count;
+    int kill; // 0: no kill, 1: self kill, 2: force kill
+};
 
 struct PlaneInfo
 {
@@ -81,7 +95,7 @@ int main()
 
     key_t key;
     int msgid;
-    struct msg_buffer message;
+    struct a_message message;
 
     printf("Enter Plane ID: ");
     scanf("%d", &planeID);
@@ -261,19 +275,18 @@ int main()
     // planes[planeID - 1][2] = arrivalAirport; not needed
 
     // Send plane information through message queue
-    message.msg_type = planeID;
-    message.plane.planeID = planeID;
-    message.plane.planeType = planeType;
-    message.plane.numOccupiedSeats = numOccupiedSeats;
-    message.plane.totalLuggageWeight = totalLuggageWeight;
-    message.plane.totalPassengerWeight = totalPassengerWeight;
-    message.plane.totalCrewWeight = totalCrewWeight;
-    message.plane.departureAirport = departureAirport;
-    message.plane.arrivalAirport = arrivalAirport;
-    message.plane.totalPlaneWeight = totalPlaneWeight;
-    message.notification.completionStatus = 0;
+    message.msg_type = A_MSG_TYPE;
+    message.pl_ID = planeID;
+    ;
+    message.dep_ID = departureAirport;
+    message.arr_ID = arrivalAirport;
+    message.tot_weight = (totalLuggageWeight + totalPassengerWeight + totalCrewWeight);
+    message.plane_type = planeType;
+    message.passenger_count = numOccupiedSeats;
+    message.kill = 0;
+
     // msgsnd to send message
-    if (msgsnd(msgid, &message, sizeof(message.plane), 0) == -1)
+    if (msgsnd(msgid, &message, sizeof(message), 0) == -1)
     {
         printf("error in sending message\n");
         exit(1);
@@ -284,15 +297,23 @@ int main()
     sleep(JOURNEY_TIME); // Journey duration
     // Receive notification from the plane process
     sleep(DEBOARDING_TIME); // deboarding/unloading process
-    msgrcv(msgid, &message, sizeof(message.notification), 1, 0);
+    while (1)
+    {
+        msgrcv(msgid, &message, sizeof(message), A_MSG_TYPE, 0);
+        /*Once the plane arrives at the arrival airport and the deboarding/unloading process is completed, the air  traffic controller process (after receiving a confirmation from the arrival airport) informs the plane  process that the deboarding/unloading is completed via the single message queue of 2.(c). For a cargo  plane, deboarding implies unloading the cargo. Upon receiving this intimation, the plane process  displays the following message before terminating itself.
+         */
 
-    /*Once the plane arrives at the arrival airport and the deboarding/unloading process is completed, the air  traffic controller process (after receiving a confirmation from the arrival airport) informs the plane  process that the deboarding/unloading is completed via the single message queue of 2.(c). For a cargo  plane, deboarding implies unloading the cargo. Upon receiving this intimation, the plane process  displays the following message before terminating itself.
-     */
-    if (message.notification.completionStatus == 1)
-        printf("Plane %d has successfully traveled from Airport %d to Airport %d!\n", planeID, departureAirport, arrivalAirport);
+        if (message.pl_ID != planeID)
+            continue;
 
-    // Destroy the message queue
-    msgctl(msgid, IPC_RMID, NULL);
+        if (message.kill == 1)
+            printf("Plane %d has successfully traveled from Airport %d to Airport %d!\n", planeID, departureAirport, arrivalAirport);
+        return 0;
+
+        if (message.kill == 2)
+            printf("Departure not possible");
+        return 0;
+    }
 
     return 0;
 }

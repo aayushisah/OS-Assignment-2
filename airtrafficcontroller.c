@@ -111,7 +111,7 @@ int main()
         if (termination_requested)
         {
             process_aft_termination_req(a_msg.pl_ID, msg_queue_id);
-            active_planes–;
+            active_planes--;
         }
 
         // Receiving p_message from airport.c
@@ -134,7 +134,7 @@ int main()
         // if both conditions met, destroy message queue and exit loop
         if (termination_requested && active_planes == 0)
         {
-            if (msgctl(msg_id, IPC_RMID, NULL) == -1)
+            if (msgctl(msg_queue_id, IPC_RMID, NULL) == -1)
             {
                 perror("msgctl");
                 exit(EXIT_FAILURE);
@@ -202,7 +202,7 @@ void process_pmsg(struct p_message msg, int msg_queue_id)
             exit(1);
         }
 
-        active_planes–; // signifying this particular plane that the message has been sent to, is no longer active
+        active_planes--; // signifying this particular plane that the message has been sent to, is no longer active
 
         printf("Sent a_message with pl_ID: %d, dep_ID: 0, arr_ID: %d, and kill: 1\n", msg.pl_ID, msg.a_ID);
     }
@@ -235,7 +235,7 @@ void process_pmsg(struct p_message msg, int msg_queue_id)
         FILE *file = fopen("AirTrafficController.txt", "a");
         if (file != NULL)
         {
-            fprintf(file, "Plane %s has departed from Airport %s and will land at Airport %s.\n", msg.pl_id, msg.a_ID, msg.dest_ID);
+            fprintf(file, "Plane %d has departed from Airport %d and will land at Airport %d.\n", msg.pl_ID, msg.a_ID, msg.dest_ID);
             fclose(file);
         }
         else
@@ -263,9 +263,9 @@ void process_tmsg(int active_planes, int num_airports, int msg_queue_id)
             p_msg.pl_ID = 0; // Set pl_ID to 0
             p_msg.a_ID = airport_ID;
             p_msg.dest_ID = 0;
-            p_msg.tot_weight = msg.tot_weight;
-            p_msg.plane_type = msg.plane_type;
-            p_msg.passenger_count = msg.passenger_count;
+            p_msg.tot_weight = 0;
+            p_msg.plane_type = 0;
+            p_msg.passenger_count = 0;
             p_msg.status = 0;
             p_msg.type = 0;
             p_msg.action = 0;
@@ -301,9 +301,9 @@ void process_aft_termination_req(int pl_ID, int msg_queue_id)
     a_msg.pl_ID = pl_ID;
     a_msg.dep_ID = 0;
     a_msg.arr_ID = 0;
-    a_msg.tot_weight = msg.tot_weight;
-    a_msg.plane_type = msg.plane_type;
-    a_msg.passenger_count = msg.passenger_count;
+    a_msg.tot_weight = 0;
+    a_msg.plane_type = 0;
+    a_msg.passenger_count = 0;
     a_msg.kill = 2;
 
     // Sending the new a_message
