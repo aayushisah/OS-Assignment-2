@@ -43,7 +43,7 @@ int main()
     key_t key;
     int msg_id;
     struct msg_buffer message;
-
+    char var;
     key = ftok("plane.c", 'x');
     if (key == -1)
     {
@@ -61,13 +61,10 @@ int main()
     while (1)
     {
         printf("Do you want the Air Traffic Control System to terminate? (Y for Yes and N for No)\n");
-        fgets(message.msg_text, MSG_SIZE, stdin);
-
-        // Remove the newline character from the input
-        message.msg_text[strcspn(message.msg_text, "\n")] = 0;
+        scanf(% s, &var);
 
         message.msg_type = 404;
-        if (strcmp(message.msg_text, "Y") == 0)
+        if (var == "Y")
         {
             if (msgsnd(msg_queue_id, &msg, sizeof(struct msg_buffer), 0) == -1)
             { // Send message to the message queue
