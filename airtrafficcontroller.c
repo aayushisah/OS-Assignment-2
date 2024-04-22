@@ -5,9 +5,9 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <errno.h>
-#include <stdbool.h> 
+#include <stdbool.h>
 
-int active_planes = 0; 
+int active_planes = 0;
 
 struct PlaneInfo
 {
@@ -29,10 +29,9 @@ struct NotificationMessage
 {
     int kill_status;      // 0: don't kill, 1: self kill for plane/airport, 2: force kill for plane
     int completionStatus; // This field can indicate the status of the deboarding/unloading process
-    //1 : departure plane started boarding
-    //2 : departure plane finished boarding, now in flight
-    //4 : departure plane finished deboarding
-
+    // 1 : departure plane started boarding
+    // 2 : departure plane finished boarding, now in flight
+    // 4 : departure plane finished deboarding
 };
 
 struct msg_buffer
@@ -43,16 +42,17 @@ struct msg_buffer
 };
 
 // Function prototypes
-void process_amsg(struct msg_buffer, int msg_queue_id);   //planes
-void process_pmsg(struct msg_buffer, int msg_queue_id);   //airports
-void process_tmsg(struct msg_buffer, int active_planes, int num_airports, int msg_queue_id); //termination
-void process_aft_termination_req(struct msg_buffer, int msg_queue_id);  //planes
+void process_amsg(struct msg_buffer, int msg_queue_id);                                      // planes
+void process_pmsg(struct msg_buffer, int msg_queue_id);                                      // airports
+void process_tmsg(struct msg_buffer, int active_planes, int num_airports, int msg_queue_id); // termination
+void process_aft_termination_req(struct msg_buffer, int msg_queue_id);                       // planes
 
-int main() {
+int main()
+{
     key_t key;
     struct msg_buffer msg;
     bool termination_requested = false; // Flag to track termination request
-   
+
     int num_airports;
 
     key = ftok("plane.c", 'x'); // change path to atc.c when that file is made for uniformity.
@@ -64,7 +64,8 @@ int main() {
 
     // Create or get the message queue
     const int msg_queue_id = msgget(key, 0666 | IPC_CREAT);
-    if (msg_queue_id == -1) {
+    if (msg_queue_id == -1)
+    {
         perror("msgget");
         exit(1);
     }
@@ -77,46 +78,51 @@ int main() {
     scanf("%d", &num_airports);
 
     // Receiving and processing messages in an infinte loop
-    while (1) {
+    while (1)
+    {
 
         if (termination_requested)
-           process_tmsg(msg, active_planes, num_airports, msg_queue_id); 
+            process_tmsg(msg, active_planes, num_airports, msg_queue_id);
 
-        // Receiving a_message from plane.c
-        if (msgrcv(msg_queue_id, &msg, sizeof(struct msg_buffer), 0, 0) == -1) {
+        // Receiving a_message
+        if (msgrcv(msg_queue_id, &msg, sizeof(struct msg_buffer), 0, 0) == -1)
+        {
             perror("msgrcv");
             exit(1);
         }
-        
-        if (msg.msg_type>=1 && msg.msg_type<=10)
-        {// Processing a_message from planes when termination not requested yet
-        if (!termination_requested) {
-            process_amsg(msg, msg_queue_id); 
-            active_planes++;
+
+        if (msg.msg_type >= 1 && msg.msg_type <= 10)
+        { // Processing a_message from planes when termination not requested yet
+            if (!termination_requested)
+            {
+                process_amsg(msg, msg_queue_id);
+                active_planes++;
+            }
+
+            // Processing a_message from planes when termination requested
+            if (termination_requested)
+            {
+                process_aft_termination_req(msg, msg_queue_id);
+                active_planes--;
+            }
         }
-        
-        // Processing a_message from planes when termination requested
-        if (termination_requested) {
-            process_aft_termination_req(msg, msg_queue_id);
-            active_planes--;
-        }
-        }
-        
-        if (msg.msg_type>=11 && msg.msg_type<=20)
-        // Processing p_message from airports
-        process_pmsg(msg, msg_queue_id);
+
+        if (msg.msg_type >= 11 && msg.msg_type <= 20)
+            // Processing p_message from airports
+            process_pmsg(msg, msg_queue_id);
 
         // Receiving termination message
-        if (!termination_requested && msg.msg_type==404) {
+        if (!termination_requested && msg.msg_type == 404)
+        {
             // Process termination message from cleanup
             termination_requested = true; // Set termination flag
         }
 
-        //if both conditions met, destroy message queue and exit loop
+        // if both conditions met, destroy message queue and exit loop
         if (termination_requested && active_planes == 0)
         {
             if (msgctl(msg_queue_id, IPC_RMID, NULL) == -1)
-            { 
+            {
                 perror("msgctl");
                 exit(EXIT_FAILURE);
             }
@@ -130,16 +136,26 @@ int main() {
 
 // Function to process a_message from plane
 // Plane sends message to atc only once, so only one case : atc extracts the info from plane message and forwards it to the departure airport using p_message
-void process_amsg(struct msg_buffer msg, int msg_queue_id) {
+void process_amsg(struct msg_buffer msg, int msg_queue_id)
+{
 
     printf("Received flight begin message from plane: %d \n", msg.plane.planeID);
+    msg.msg_type = msg.plane.planeID;
+    msg.notification.kill_status = 0;
 
-    msg.msg_type = msg.plane.departureAirport+10;
-    msg.notification.kill_status = 0;      
+    // Sending the new a_message
+    if (msgsnd(msg_queue_id, &msg, sizeof(struct msg_buffer), 0) == -1)
+    {
+        perror("msgsnd");
+        exit(1);
+    }
+    msg.msg_type = msg.plane.departureAirport + 10;
+    msg.notification.kill_status = 0;
     msg.notification.completionStatus = 1;
 
     // Sending the p_message to airport.c
-    if (msgsnd(msg_queue_id, &msg, sizeof(struct msg_buffer), 0) == -1) {
+    if (msgsnd(msg_queue_id, &msg, sizeof(struct msg_buffer), 0) == -1)
+    {
         perror("msgsnd");
         exit(1);
     }
@@ -149,64 +165,76 @@ void process_amsg(struct msg_buffer msg, int msg_queue_id) {
 
 // Function to process p_message from airports
 // Now there are two cases when atc receives a message from plane : one when boarding complete and one when deboarding complete
-void process_pmsg(struct msg_buffer msg, int msg_queue_id) {
-    
+void process_pmsg(struct msg_buffer msg, int msg_queue_id)
+{
+
     // Deboarding complete case: We need to let the plane know that it needs to shut down, for this airport.c needs to send dest_ID as 0 because plane would go nowhere next)
-    if (msg.notification.completionStatus == 4) {
+    if (msg.notification.completionStatus == 4)
+    {
         // Prepare the new a_message
 
         msg.msg_type = msg.plane.planeID;
-        msg.notification.kill_status = 1;      
+        msg.notification.kill_status = 1;
         msg.notification.completionStatus = 4;
 
         // Sending the new a_message to respective plane
-        if (msgsnd(msg_queue_id, &msg, sizeof(struct msg_buffer), 0) == -1) {
+        if (msgsnd(msg_queue_id, &msg, sizeof(struct msg_buffer), 0) == -1)
+        {
             perror("msgsnd");
             exit(1);
         }
 
-active_planes--;   //signifying this particular plane that the message has been sent to, is no longer active
+        active_planes--; // signifying this particular plane that the message has been sent to, is no longer active
 
         printf("Sent a_message with pl_ID: %d and kill: 1\n", msg.plane.planeID);
     }
 
-    // Boarding complete case: We need to let the arrival airport know that flight is about to land, 
-    if (msg.notification.completionStatus == 2) {
-        
-        msg.msg_type = msg.plane.arrivalAirport+10;
-        msg.notification.kill_status = 0;      
+    // Boarding complete case: We need to let the arrival airport know that flight is about to land,
+    if (msg.notification.completionStatus == 2)
+    {
+
+        msg.msg_type = msg.plane.arrivalAirport + 10;
+        msg.notification.kill_status = 0;
         msg.notification.completionStatus = 2;
 
         // Sending the new p_message
-        if (msgsnd(msg_queue_id, &msg, sizeof(struct msg_buffer), 0) == -1) {
+        if (msgsnd(msg_queue_id, &msg, sizeof(struct msg_buffer), 0) == -1)
+        {
             perror("msgsnd");
             exit(1);
         }
 
         FILE *file = fopen("AirTrafficController.txt", "a");
-        if (file != NULL) {
-        fprintf(file, "Plane %d has departed from Airport %d and will land at Airport %d.\n", msg.plane.planeID, msg.plane.departureAirport, msg.plane.arrivalAirport);
-        fclose(file);
-    } else {
-        printf("Error opening file!\n");
-    }
+        if (file != NULL)
+        {
+            fprintf(file, "Plane %d has departed from Airport %d and will land at Airport %d.\n", msg.plane.planeID, msg.plane.departureAirport, msg.plane.arrivalAirport);
+            fclose(file);
+        }
+        else
+        {
+            printf("Error opening file!\n");
+        }
     }
 }
 
 // Function to process termination message
-void process_tmsg(struct msg_buffer msg, int active_planes, int num_airports, int msg_queue_id) {
+void process_tmsg(struct msg_buffer msg, int active_planes, int num_airports, int msg_queue_id)
+{
     // Process termination message here
     printf("Received termination message. Number of active planes: %d.\n", active_planes);
-    
-    if (active_planes == 0) {
-        // Send p_message for all airports
-        for (int airport_ID = 1; airport_ID <= num_airports; airport_ID++) {
 
-            msg.msg_type = airport_ID+10;
-            msg.notification.kill_status = 1;      
+    if (active_planes == 0)
+    {
+        // Send p_message for all airports
+        for (int airport_ID = 1; airport_ID <= num_airports; airport_ID++)
+        {
+
+            msg.msg_type = airport_ID + 10;
+            msg.notification.kill_status = 1;
 
             // Sending the p_message
-            if (msgsnd(msg_queue_id, &msg, sizeof(struct msg_buffer), 0) == -1) {
+            if (msgsnd(msg_queue_id, &msg, sizeof(struct msg_buffer), 0) == -1)
+            {
                 perror("msgsnd");
                 exit(1);
             }
@@ -217,17 +245,18 @@ void process_tmsg(struct msg_buffer msg, int active_planes, int num_airports, in
 }
 
 // Function to process a_messages after termination
-void process_aft_termination_req(struct msg_buffer msg, int msg_queue_id) {
+void process_aft_termination_req(struct msg_buffer msg, int msg_queue_id)
+{
 
-            msg.msg_type=msg.plane.planeID;
-            msg.notification.kill_status = 2;      
+    msg.msg_type = msg.plane.planeID;
+    msg.notification.kill_status = 2;
 
     // Sending the new a_message
-    if (msgsnd(msg_queue_id, &msg, sizeof(struct msg_buffer), 0) == -1) {
+    if (msgsnd(msg_queue_id, &msg, sizeof(struct msg_buffer), 0) == -1)
+    {
         perror("msgsnd");
         exit(1);
     }
 
     printf("Processed a_message after termination with pl_ID: %d and kill: 2\n", msg.plane.planeID);
 }
-

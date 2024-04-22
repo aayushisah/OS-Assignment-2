@@ -284,6 +284,14 @@ int main()
         exit(1);
     }
     printf("departure message sent to ATC\n");
+    if (msgrcv(msgid, &message, sizeof(message), planeID, 0))
+    {
+        if (message.notification.kill_status == 2)
+        {
+            printf("Departure not possible");
+            return 0;
+        }
+    }
     // Simulate the boarding/loading process
     sleep(BOARDING_TIME); // Boarding/loading process
 
@@ -297,19 +305,17 @@ int main()
 
     // Receive notification from the plane process
     sleep(DEBOARDING_TIME); // deboarding/unloading process
-    while (1)
+
+    msgrcv(msgid, &message, sizeof(message), planeID, 0);
+
+    if (message.notification.kill_status == 2)
     {
-        msgrcv(msgid, &message, sizeof(message), 0, 0);
-
-        if (message.msg_type != planeID)
-            continue;
-
-        if (message.notification.kill_status == 1)
-            printf("Plane %d has successfully traveled from Airport %d to Airport %d!\n", planeID, departureAirport, arrivalAirport);
+        printf("Departure not possible");
         return 0;
-
-        if (message.notification.kill_status == 2)
-            printf("Departure not possible");
+    }
+    if (message.notification.kill_status == 1)
+    {
+        printf("Plane %d has successfully traveled from Airport %d to Airport %d!\n", planeID, departureAirport, arrivalAirport);
         return 0;
     }
 

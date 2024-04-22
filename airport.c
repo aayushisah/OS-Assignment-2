@@ -270,7 +270,16 @@ int main()
             }
 
             pthread_join(arrival_thread, NULL);
+            // send arrival message to arrival airport
+            message.msg_type = airportNumber + 10;
+            message.notification.completionStatus = 4;
+            if (msgsnd(msgid, &message, sizeof(message), 0) == -1)
+            {
+                printf("error in sending arrival complete message\n");
+                exit(1);
+            }
         }
+
         else
         {
             printf("This message is prolly not for this airport.\n");
