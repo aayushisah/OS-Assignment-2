@@ -17,7 +17,7 @@
 #define AVG_WEIGHT_CREW 75
 #define BOARDING_TIME 3
 #define DEBOARDING_TIME 3
-#define JOURNEY_TIME 10
+#define JOURNEY_TIME 7
 #define MSG_QUEUE_KEY 'atc_message_queue'
 
 struct PlaneInfo
@@ -36,9 +36,15 @@ struct PlaneInfo
 
     int totalPlaneWeight;
 };
+
 struct NotificationMessage
 {
+    int kill_status;      // 0: don't kill, 1: self kill for plane/airport, 2: force kill for plane
     int completionStatus; // This field can indicate the status of the deboarding/unloading process
+    //1 : departure plane started boarding
+    //2 : departure plane finished boarding, now in flight
+    //4 : departure plane finished deboarding
+
 };
 
 struct msg_buffer
@@ -261,17 +267,18 @@ int main()
     // planes[planeID - 1][2] = arrivalAirport; not needed
 
     // Send plane information through message queue
-    message.msg_type = departureAirport+10;
+    message.msg_type = planeID;
     message.plane.planeID = planeID;
     message.plane.planeType = planeType;
     message.plane.numOccupiedSeats = numOccupiedSeats;
     message.plane.totalLuggageWeight = totalLuggageWeight;
     message.plane.totalPassengerWeight = totalPassengerWeight;
     message.plane.totalCrewWeight = totalCrewWeight;
-    message.plane.departureAirport = departureAirport+10;
-    message.plane.arrivalAirport = arrivalAirport+10;
+    message.plane.departureAirport = departureAirport;
+    message.plane.arrivalAirport = arrivalAirport;
     message.plane.totalPlaneWeight = totalPlaneWeight;
-    message.notification.completionStatus = 0;
+    message.notification.kill_status = 0;
+    message.notification.completionStatus = 1;
     // msgsnd to send message
     if (msgsnd(msgid, &message, sizeof(message), 0) == -1)
     {
@@ -292,15 +299,12 @@ int main()
 
     // Receive notification from the plane process
     sleep(DEBOARDING_TIME); // deboarding/unloading process
-    msgrcv(msgid, &message, sizeof(message.notification), 1, 0);
+    msgrcv(msgid, &message, sizeof(message.notification), planeID, 0);
 
     /*Once the plane arrives at the arrival airport and the deboarding/unloading process is completed, the air  traffic controller process (after receiving a confirmation from the arrival airport) informs the plane  process that the deboarding/unloading is completed via the single message queue of 2.(c). For a cargo  plane, deboarding implies unloading the cargo. Upon receiving this intimation, the plane process  displays the following message before terminating itself.
      */
-    if (message.notification.completionStatus == 1)
+    if (message.notification.completionStatus == 4)
         printf("Plane %d has successfully traveled from Airport %d to Airport %d!\n", planeID, departureAirport, arrivalAirport);
-
-    // Destroy the message queue
-    msgctl(msgid, IPC_RMID, NULL);
 
     return 0;
 }

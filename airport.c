@@ -8,6 +8,7 @@
 #include <sys/msg.h>
 #include <pthread.h>
 
+
 #define MSG_QUEUE_KEY 'k'
 
 struct PlaneInfo
@@ -88,6 +89,9 @@ void *handleDeparture(void *arg)
     sleep(3);
 
     printf("Plane %d has completed boarding/loading and taken off from Runway No. %d of Airport No. %d.\n", planeID, selectedRunway, airportNumber);
+
+    //simulate takeoff
+    sleep(2); 
 
     // Reset the availability flag of the selected runway
     pthread_mutex_lock(&departure->runways[selectedRunway].mutex);
@@ -237,6 +241,15 @@ int main()
             }
 
             pthread_join(departure_thread, NULL);
+
+            //send arrival message to arrival airport
+            message.msg_type = message.plane.arrivalAirport;
+            if (msgsnd(msgid, &message, sizeof(message), 0) == -1)
+            {
+                printf("error in sending arrival message\n");
+                exit(1);
+            }
+            printf("arrival inbound message sent to ATC\n"); 
         }
         //Plane wants to arrive to this airport
         else if (message.plane.arrivalAirport == airportNumber+10){
