@@ -268,8 +268,8 @@ int main()
     message.plane.totalLuggageWeight = totalLuggageWeight;
     message.plane.totalPassengerWeight = totalPassengerWeight;
     message.plane.totalCrewWeight = totalCrewWeight;
-    message.plane.departureAirport = departureAirport;
-    message.plane.arrivalAirport = arrivalAirport;
+    message.plane.departureAirport = departureAirport+10;
+    message.plane.arrivalAirport = arrivalAirport+10;
     message.plane.totalPlaneWeight = totalPlaneWeight;
     message.notification.completionStatus = 0;
     // msgsnd to send message

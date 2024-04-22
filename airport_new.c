@@ -220,7 +220,7 @@ int main()
         //     exit(1);
         // }
         printf("message received\n");
-
+        printf("plane is saying depart from %d & arrive to %d\n",message.plane.departureAirport,message.plane.arrivalAirport);
         // Plane wants to depart from this airport
         if (message.plane.departureAirport == airportNumber+10)
         {
