@@ -26,7 +26,12 @@ struct PlaneInfo
 
 struct NotificationMessage
 {
+    int kill_status;      // 0: don't kill, 1: self kill for plane/airport, 2: force kill for plane
     int completionStatus; // This field can indicate the status of the deboarding/unloading process
+    //1 : departure plane started boarding
+    //2 : departure plane finished boarding, now in flight
+    //4 : departure plane finished deboarding
+
 };
 
 struct msg_buffer
