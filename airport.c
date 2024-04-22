@@ -52,9 +52,6 @@ int handleDeparture(struct DepartureArgs departure){
     int planeID = departure.message.plane.planeID;
     int airportNumber = departure.message.plane.departureAirport;
 
-    //mutex lock here
-    
-
     //find best fit runway
     for(int i = 1; i <= runwaysCount; i++){
         if(departure.message.plane.totalPlaneWeight <= runways[i]){
@@ -63,6 +60,15 @@ int handleDeparture(struct DepartureArgs departure){
             }
         }
     }
+    int runway_status[runwaysCount] = {0}; // 0 - free, 1 - busy
+
+    //mutex lock here
+    pthread_mutex_t lock;
+    if (pthread_mutex_init(&lock, NULL) != 0) { 
+        printf("\n mutex init has failed\n"); 
+        return 1; 
+    } 
+    
 
     //boarding/loading process sleep 3 seconds
     sleep(3);

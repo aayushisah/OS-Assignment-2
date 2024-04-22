@@ -105,7 +105,7 @@ int main()
     // Validate the airport number
     if (airportNumber < 1 || airportNumber > 10)
     {
-        fprintf(stderr, "Invalid airport number. Please enter a valid airport number between 1 and 10.\n");
+        //printf("Invalid airport number. Please enter a valid airport number between 1 and 10.\n");
         return 1;
     }
 
@@ -115,7 +115,7 @@ int main()
 
     if (runwaysCount < 1 || runwaysCount > 10)
     {
-        fprintf(stderr, "Invalid number of runways. Please enter a valid number between 1 and 10.\n");
+        printf("Invalid number of runways. Please enter a valid number between 1 and 10.\n");
         return 1;
     }
 
@@ -125,22 +125,25 @@ int main()
     // Backup runway always at index 0
     runways[0].loadCapacity = 15000;
     runways[0].isAvailable = 1;
-
+    printf("runway count itna hai:%d", runwaysCount);
     // Initializing rest of the runways
-    printf("Enter loadCapacity of Runways (give as a space separated list in a single line): ");
+    printf("Enter loadCapacity of Runways (give as a space separated list in a single line):");
+    int temp[runwaysCount];
+    for (int i = 0; i < 2; i++) {
+        scanf("%d", &temp[i]);
+    }
+    printf("reached1");
     for (int i = 1; i <= runwaysCount; i++)
     {
-        int temp;
-        scanf("%d", &temp);
-
-        if (temp < 1000 || temp > 12000)
+        if (temp[i-1] < 1000 || temp[i-1] > 12000)
         {
-            fprintf(stderr, "Invalid load capacity. Please enter a valid capacity between 1000 and 12000.\n");
+            printf("Invalid load capacity. Please enter a valid capacity between 1000 and 12000.\n");
             return 1;
         }
-        runways[i].loadCapacity = temp;
+        runways[i].loadCapacity = temp[i-1];
         runways[i].isAvailable = 1;
         pthread_mutex_init(&runways[i].mutex, NULL);
+        printf("reached");
     }
 
     // Logic to receive message from ATC
@@ -177,7 +180,7 @@ int main()
         pthread_t departure_thread;
         if (pthread_create(&departure_thread, NULL, handleDeparture, (void *)&departure) != 0)
         {
-            fprintf(stderr, "Error in creating thread for plane %d\n", message.plane.planeID);
+            printf("Error in creating thread for plane %d\n", message.plane.planeID);
             return 1;
         }
 
