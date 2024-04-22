@@ -125,13 +125,21 @@ int main()
     // Backup runway always at index 0
     runways[0].loadCapacity = 15000;
     runways[0].isAvailable = 1;
-    printf("runway count itna hai:%d", runwaysCount);
+    printf("runway count itna hai:%d\n", runwaysCount);
     // Initializing rest of the runways
     printf("Enter loadCapacity of Runways (give as a space separated list in a single line):");
     int temp[runwaysCount];
-    for (int i = 0; i < 2; i++) {
-        scanf("%d", &temp[i]);
+    for (int i = 0; i < runwaysCount; i++) {
+        if (scanf("%d", &temp[i]) != 1) {
+            printf("Error: Unable to read input.\n");
+            return 1; // Exit the program
+        }
+        else
+        {
+            printf("read:%d\n", temp[i]);
+        }
     }
+
     printf("reached1");
     for (int i = 1; i <= runwaysCount; i++)
     {
