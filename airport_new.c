@@ -130,16 +130,8 @@ int main()
     printf("Enter loadCapacity of Runways (give as a space separated list in a single line):");
     int temp[runwaysCount];
     for (int i = 0; i < runwaysCount; i++) {
-        if (scanf("%d", &temp[i]) != 1) {
-            printf("Error: Unable to read input.\n");
-            return 1; // Exit the program
-        }
-        else
-        {
-            printf("read:%d\n", temp[i]);
-        }
+        scanf("%d", &temp[i]);
     }
-
     printf("reached1");
     for (int i = 1; i <= runwaysCount; i++)
     {
