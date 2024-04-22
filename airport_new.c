@@ -132,18 +132,17 @@ int main()
     for (int i = 0; i < runwaysCount; i++) {
         scanf("%d", &temp[i]);
     }
-    printf("reached1");
-    for (int i = 1; i <= runwaysCount; i++)
+    for (int i = 0; i < runwaysCount; i++)
     {
-        if (temp[i-1] < 1000 || temp[i-1] > 12000)
+        if (temp[i] < 1000 || temp[i] > 12000)
         {
             printf("Invalid load capacity. Please enter a valid capacity between 1000 and 12000.\n");
             return 1;
         }
-        runways[i].loadCapacity = temp[i-1];
-        runways[i].isAvailable = 1;
+        runways[i+1].loadCapacity = temp[i];
+        runways[i+1].isAvailable = 1;
         pthread_mutex_init(&runways[i].mutex, NULL);
-        printf("reached");
+        printf("runway %d has limit %d\n", i+1, runways[i+1].loadCapacity);
     }
 
     // Logic to receive message from ATC
@@ -162,30 +161,46 @@ int main()
         exit(1);
     }
 
-    // Receives the message from the message queue with the flight details
-    if (msgrcv(msgid, &message, sizeof(message.plane), 1, 0) == -1)
-    {
-        printf("Error in receiving message\n");
-        exit(1);
-    }
+    int airportactive = 1;
+    while(airportactive == 1){
+        // Receives the message from the message queue with the flight details
+        while(msgrcv(msgid, &message, sizeof(message.plane), airportNumber+10, 0) == 0){
 
-    // If this airport is the departing airport
-    if (message.plane.departureAirport == airportNumber)
-    {
-        struct DepartureArgs departure;
-        departure.message = message;
-        departure.runways = runways;
-        departure.numRunways = runwaysCount;
-
-        pthread_t departure_thread;
-        if (pthread_create(&departure_thread, NULL, handleDeparture, (void *)&departure) != 0)
+        }
+        if (msgrcv(msgid, &message, sizeof(message.plane), airportNumber+10, 0) == -1)
         {
-            printf("Error in creating thread for plane %d\n", message.plane.planeID);
-            return 1;
+            printf("Error in receiving message\n");
+            exit(1);
         }
 
-        pthread_join(departure_thread, NULL);
+        // Plane wants to depart from this airport
+        if (message.plane.departureAirport == airportNumber+10)
+        {
+            struct DepartureArgs departure;
+            departure.message = message;
+            departure.runways = runways;
+            departure.numRunways = runwaysCount;
+
+            pthread_t departure_thread;
+            if (pthread_create(&departure_thread, NULL, handleDeparture, (void *)&departure) != 0)
+            {
+                printf("Error in creating thread for plane %d\n", message.plane.planeID);
+                return 1;
+            }
+
+            pthread_join(departure_thread, NULL);
+        }
+        else if (message.plane.arrivalAirport == airportNumber+10){
+            //arrival part
+        }
+        else{
+            printf("This message is prolly not for this airport.\n");
+        }
+
+        //check if airport needs to close
     }
+
+    
 
     return 0;
 }
