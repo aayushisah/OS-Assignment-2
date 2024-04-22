@@ -41,8 +41,8 @@ struct msg_buffer
 int main()
 {
     key_t key;
-    int msg_id;
-    struct msg_buffer message;
+    int msg_queue_id;
+    struct msg_buffer msg;
     char var;
     key = ftok("plane.c", 'x');
     if (key == -1)
@@ -51,8 +51,8 @@ int main()
         exit(1);
     }
 
-    msg_id = msgget(key, 0666 | IPC_CREAT); // Create a message queue
-    if (msg_id == -1)
+    msg_queue_id = msgget(key, 0666 | IPC_CREAT); // Create a message queue
+    if (msg_queue_id == -1)
     {
         perror("msgget");
         exit(EXIT_FAILURE);
@@ -61,9 +61,9 @@ int main()
     while (1)
     {
         printf("Do you want the Air Traffic Control System to terminate? (Y for Yes and N for No)\n");
-        scanf(% s, &var);
+        scanf("%s", &var);
 
-        message.msg_type = 404;
+        mesg.msg_type = 404;
         if (var == "Y")
         {
             if (msgsnd(msg_queue_id, &msg, sizeof(struct msg_buffer), 0) == -1)
