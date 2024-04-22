@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -315,3 +316,4 @@ void process_aft_termination_req(int pl_ID, int msg_queue_id)
 
     printf("Processed a_message after termination with pl_ID: %d and kill: 2\n", pl_ID);
 }
+
