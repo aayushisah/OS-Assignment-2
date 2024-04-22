@@ -17,7 +17,7 @@
 #define AVG_WEIGHT_CREW 75
 #define BOARDING_TIME 3
 #define DEBOARDING_TIME 3
-#define JOURNEY_TIME 30
+#define JOURNEY_TIME 10
 #define MSG_QUEUE_KEY 'atc_message_queue'
 
 struct PlaneInfo
@@ -261,7 +261,7 @@ int main()
     // planes[planeID - 1][2] = arrivalAirport; not needed
 
     // Send plane information through message queue
-    message.msg_type = arrivalAirport+10;
+    message.msg_type = departureAirport+10;
     message.plane.planeID = planeID;
     message.plane.planeType = planeType;
     message.plane.numOccupiedSeats = numOccupiedSeats;
@@ -273,15 +273,23 @@ int main()
     message.plane.totalPlaneWeight = totalPlaneWeight;
     message.notification.completionStatus = 0;
     // msgsnd to send message
-    if (msgsnd(msgid, &message, sizeof(message.plane), 0) == -1)
+    if (msgsnd(msgid, &message, sizeof(message), 0) == -1)
     {
         printf("error in sending message\n");
         exit(1);
     }
+    printf("departure message sent to ATC\n");
     // Simulate the boarding/loading process
     sleep(BOARDING_TIME); // Boarding/loading process
+
     // Simulate the plane journey duration
-    sleep(JOURNEY_TIME); // Journey duration
+    sleep(JOURNEY_TIME); // Journey duration 
+    //********************************
+    //********************************
+    //CHANGE THIS BACK TO 30 IN DEFINE
+    //********************************
+    //********************************
+
     // Receive notification from the plane process
     sleep(DEBOARDING_TIME); // deboarding/unloading process
     msgrcv(msgid, &message, sizeof(message.notification), 1, 0);

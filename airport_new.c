@@ -50,6 +50,13 @@ struct DepartureArgs
     int numRunways;
 };
 
+struct ArrivalArgs
+{
+    struct msg_buffer message;
+    struct Runway *runways;
+    int numRunways;
+};
+
 void *handleDeparture(void *arg)
 {
     struct DepartureArgs *departure = (struct DepartureArgs *)arg;
@@ -86,6 +93,46 @@ void *handleDeparture(void *arg)
     pthread_mutex_lock(&departure->runways[selectedRunway].mutex);
     departure->runways[selectedRunway].isAvailable = 1; // Mark the runway as available
     pthread_mutex_unlock(&departure->runways[selectedRunway].mutex);
+
+    return NULL;
+}
+
+void *handleArrival(void *arg)
+{
+    struct ArrivalArgs *arrival = (struct ArrivalArgs *)arg;
+    int selectedRunway = 0;
+    int planeID = arrival->message.plane.planeID;
+    int airportNumber = arrival->message.plane.arrivalAirport;
+
+    for (int i = 1; i <= arrival->numRunways; i++)
+    {
+        pthread_mutex_lock(&arrival->runways[i].mutex);
+        if (arrival->message.plane.totalPlaneWeight <= arrival->runways[i].loadCapacity && arrival->runways[i].isAvailable)
+        {
+            if (selectedRunway == 0 || arrival->runways[i].loadCapacity < arrival->runways[selectedRunway].loadCapacity)
+            {
+                if (selectedRunway != 0)
+                {
+                    // Mark the previously selected runway as available again
+                    arrival->runways[selectedRunway].isAvailable = 1;
+                }
+                selectedRunway = i;
+                // Mark the current runway as unavailable
+                arrival->runways[i].isAvailable = 0;
+            }
+        }
+        pthread_mutex_unlock(&arrival->runways[i].mutex);
+    }
+
+    // Boarding/loading process
+    sleep(3);
+
+    printf("Plane %d has landed on Runway No. %d of Airport No. %d  and has completed deboarding/unloading.\n", planeID, selectedRunway, airportNumber);
+
+    // Reset the availability flag of the selected runway
+    pthread_mutex_lock(&arrival->runways[selectedRunway].mutex);
+    arrival->runways[selectedRunway].isAvailable = 1; // Mark the runway as available
+    pthread_mutex_unlock(&arrival->runways[selectedRunway].mutex);
 
     return NULL;
 }
@@ -164,14 +211,15 @@ int main()
     int airportactive = 1;
     while(airportactive == 1){
         // Receives the message from the message queue with the flight details
-        while(msgrcv(msgid, &message, sizeof(message.plane), airportNumber+10, 0) == 0){
+        while(msgrcv(msgid, &message, sizeof(message), airportNumber+10, 0) == -1){
 
         }
-        if (msgrcv(msgid, &message, sizeof(message.plane), airportNumber+10, 0) == -1)
-        {
-            printf("Error in receiving message\n");
-            exit(1);
-        }
+        // if (msgrcv(msgid, &message, sizeof(message), airportNumber+10, 0) == -1)
+        // {
+        //     printf("Error in receiving message\n");
+        //     exit(1);
+        // }
+        printf("message received\n");
 
         // Plane wants to depart from this airport
         if (message.plane.departureAirport == airportNumber+10)
@@ -190,8 +238,21 @@ int main()
 
             pthread_join(departure_thread, NULL);
         }
+        //Plane wants to arrive to this airport
         else if (message.plane.arrivalAirport == airportNumber+10){
-            //arrival part
+            struct ArrivalArgs arrival;
+            arrival.message = message;
+            arrival.runways = runways;
+            arrival.numRunways = runwaysCount;
+
+            pthread_t arrival_thread;
+            if (pthread_create(&arrival_thread, NULL, handleArrival, (void *)&arrival) != 0)
+            {
+                printf("Error in creating thread for plane %d\n", message.plane.planeID);
+                return 1;
+            }
+
+            pthread_join(arrival_thread, NULL);
         }
         else{
             printf("This message is prolly not for this airport.\n");
