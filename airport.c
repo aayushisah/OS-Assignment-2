@@ -148,7 +148,6 @@ int main()
     int runwaysCount;
 
     key_t key;
-    int msgid;
     struct msg_buffer message;
 
     printf("Enter Airport Number: ");
@@ -207,7 +206,7 @@ int main()
     }
 
     // msgget creates a message queue and returns identifier
-    msgid = msgget(key, 0666 | IPC_CREAT);
+    const int msgid = msgget(key, 0666 | IPC_CREAT);
     if (msgid == -1)
     {
         printf("Error in creating message queue\n");

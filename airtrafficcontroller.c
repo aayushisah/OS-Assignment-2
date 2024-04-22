@@ -50,7 +50,6 @@ void process_aft_termination_req(struct msg_buffer, int msg_queue_id);  //planes
 
 int main() {
     key_t key;
-    int msg_queue_id;
     struct msg_buffer msg;
     bool termination_requested = false; // Flag to track termination request
    
@@ -64,7 +63,7 @@ int main() {
     }
 
     // Create or get the message queue
-    msg_queue_id = msgget(key, 0666 | IPC_CREAT);
+    const int msg_queue_id = msgget(key, 0666 | IPC_CREAT);
     if (msg_queue_id == -1) {
         perror("msgget");
         exit(1);
