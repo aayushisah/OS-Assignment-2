@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -7,7 +8,6 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <pthread.h>
-
 
 #define MSG_QUEUE_KEY 'k'
 
@@ -26,12 +26,8 @@ struct PlaneInfo
 
 struct NotificationMessage
 {
-    int kill_status;      // 0: don't kill, 1: self kill for plane/airport, 2: force kill for plane
+    int kill_status;
     int completionStatus; // This field can indicate the status of the deboarding/unloading process
-    //1 : departure plane started boarding
-    //2 : departure plane finished boarding, now in flight
-    //4 : departure plane finished deboarding
-
 };
 
 struct msg_buffer
@@ -95,8 +91,8 @@ void *handleDeparture(void *arg)
 
     printf("Plane %d has completed boarding/loading and taken off from Runway No. %d of Airport No. %d.\n", planeID, selectedRunway, airportNumber);
 
-    //simulate takeoff
-    sleep(2); 
+    // simulate takeoff
+    sleep(2);
 
     // Reset the availability flag of the selected runway
     pthread_mutex_lock(&departure->runways[selectedRunway].mutex);
@@ -161,7 +157,7 @@ int main()
     // Validate the airport number
     if (airportNumber < 1 || airportNumber > 10)
     {
-        //printf("Invalid airport number. Please enter a valid airport number between 1 and 10.\n");
+        // printf("Invalid airport number. Please enter a valid airport number between 1 and 10.\n");
         return 1;
     }
 
@@ -185,7 +181,8 @@ int main()
     // Initializing rest of the runways
     printf("Enter loadCapacity of Runways (give as a space separated list in a single line):");
     int temp[runwaysCount];
-    for (int i = 0; i < runwaysCount; i++) {
+    for (int i = 0; i < runwaysCount; i++)
+    {
         scanf("%d", &temp[i]);
     }
     for (int i = 0; i < runwaysCount; i++)
@@ -195,10 +192,10 @@ int main()
             printf("Invalid load capacity. Please enter a valid capacity between 1000 and 12000.\n");
             return 1;
         }
-        runways[i+1].loadCapacity = temp[i];
-        runways[i+1].isAvailable = 1;
+        runways[i + 1].loadCapacity = temp[i];
+        runways[i + 1].isAvailable = 1;
         pthread_mutex_init(&runways[i].mutex, NULL);
-        printf("runway %d has limit %d\n", i+1, runways[i+1].loadCapacity);
+        printf("runway %d has limit %d\n", i + 1, runways[i + 1].loadCapacity);
     }
 
     // Logic to receive message from ATC
@@ -218,10 +215,11 @@ int main()
     }
 
     int airportactive = 1;
-    while(airportactive == 1){
+    while (airportactive == 1)
+    {
         // Receives the message from the message queue with the flight details
-        while(msgrcv(msgid, &message, sizeof(message), airportNumber+10, 0) == -1){
-
+        while (msgrcv(msgid, &message, sizeof(message), airportNumber + 10, 0) == -1)
+        {
         }
         // if (msgrcv(msgid, &message, sizeof(message), airportNumber+10, 0) == -1)
         // {
@@ -229,9 +227,9 @@ int main()
         //     exit(1);
         // }
         printf("message received\n");
-        printf("plane is saying depart from %d & arrive to %d\n",message.plane.departureAirport,message.plane.arrivalAirport);
+        printf("plane is saying depart from %d & arrive to %d\n", message.plane.departureAirport, message.plane.arrivalAirport);
         // Plane wants to depart from this airport
-        if (message.plane.departureAirport == airportNumber+10)
+        if (message.plane.departureAirport == airportNumber && message.notification.completionStatus == 1)
         {
             struct DepartureArgs departure;
             departure.message = message;
@@ -247,17 +245,19 @@ int main()
 
             pthread_join(departure_thread, NULL);
 
-            //send arrival message to arrival airport
-            message.msg_type = message.plane.arrivalAirport;
+            // send arrival message to arrival airport
+            message.msg_type = airportNumber + 10;
+            message.notification.completionStatus = 2;
             if (msgsnd(msgid, &message, sizeof(message), 0) == -1)
             {
                 printf("error in sending arrival message\n");
                 exit(1);
             }
-            printf("arrival inbound message sent to ATC\n"); 
+            printf("arrival inbound message sent to ATC\n");
         }
-        //Plane wants to arrive to this airport
-        else if (message.plane.arrivalAirport == airportNumber+10){
+        // Plane wants to arrive to this airport
+        else if (message.plane.arrivalAirport == airportNumber && message.notification.completionStatus == 2)
+        {
             struct ArrivalArgs arrival;
             arrival.message = message;
             arrival.runways = runways;
@@ -272,14 +272,13 @@ int main()
 
             pthread_join(arrival_thread, NULL);
         }
-        else{
+        else
+        {
             printf("This message is prolly not for this airport.\n");
         }
 
-        //check if airport needs to close
+        // check if airport needs to close
     }
-
-    
 
     return 0;
 }
