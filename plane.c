@@ -39,7 +39,7 @@ struct PlaneInfo
 
 struct NotificationMessage
 {
-    int flag; //0 - plane, 1 - airport
+    int flag; //0 - from plane, 1 - from airport, 2 - cleanup, 3 - departure, 4 - arrival
     int kill_status;      // 0: don't kill, 1: self kill for plane/airport, 2: force kill for plane
     int completionStatus; // This field can indicate the status of the deboarding/unloading process
     // 1 : departure plane started boarding
@@ -279,6 +279,11 @@ int main()
     message.plane.totalPlaneWeight = totalPlaneWeight;
     message.notification.kill_status = 0;
     message.notification.completionStatus = 1;
+
+    while(msgrcv(msgid, &message, sizeof(message), 500, 0) == -1){
+        printf("Do not depart \n");
+        return 0;
+    };
     // msgsnd to send message
     if (msgsnd(msgid, &message, sizeof(message), 0) == -1)
     {
