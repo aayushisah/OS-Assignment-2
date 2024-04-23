@@ -27,6 +27,7 @@ struct PlaneInfo
 };
 struct NotificationMessage
 {
+    int flag;
     int kill_status;      // 0: don't kill, 1: self kill for plane/airport, 2: force kill for plane
     int completionStatus; // This field can indicate the status of the deboarding/unloading process
     // 1 : departure plane started boarding
@@ -85,13 +86,13 @@ int main()
             process_tmsg(msg, active_planes, num_airports, msg_queue_id);
 
         // Receiving a_message
-        if (msgrcv(msg_queue_id, &msg, sizeof(struct msg_buffer), 0, 0) == -1)
+        while(msgrcv(msg_queue_id, &msg, sizeof(struct msg_buffer), 100, 0) == -1)
         {
-            perror("msgrcv");
-            exit(1);
         }
+        printf("msg received with type: %d and status: %d\n", msg.msg_type, msg.notification.completionStatus);
 
-        if (msg.msg_type >= 1 && msg.msg_type <= 10)
+        // if (msg.msg_type >= 1 && msg.msg_type <= 10)
+        if(msg.notification.flag == 0)
         { // Plane to ATC was received, now stage 2 begins
             if (!termination_requested)
             {
@@ -107,9 +108,12 @@ int main()
             }
         }
 
-        if (msg.msg_type >=21 && msg.msg_type <= 30)
+        // if (msg.msg_type >=21 && msg.msg_type <= 30)
+        if(msg.notification.flag==1)
+        {
             // Airport to ATC was done, now srage 4 begins
             stage4(msg, msg_queue_id);
+        }
 
         // Receiving termination message
         if (!termination_requested && msg.msg_type == 404)
@@ -140,7 +144,7 @@ void stage2(struct msg_buffer msg, int msg_queue_id)
 {
 
     printf("Received flight begin message from plane: %d \n", msg.plane.planeID);
-    printf("type is %d, i will make it %d", msg.msg_type, msg.msg_type+10);
+  //  printf("type is %d, i will make it %d", msg.msg_type, msg.msg_type+10);
     /*msg.msg_type = msg.msg_type+10;
     msg.notification.kill_status = 0;
 
@@ -150,7 +154,8 @@ void stage2(struct msg_buffer msg, int msg_queue_id)
         perror("msgsnd");
         exit(1);
     } */
-    msg.msg_type = msg.msg_type + 10;
+    msg.msg_type = msg.plane.departureAirport + 10;
+    msg.notification.flag =3;
     msg.notification.kill_status = 0;
     msg.notification.completionStatus = 1;
 
@@ -191,8 +196,9 @@ void stage4(struct msg_buffer msg, int msg_queue_id)
     // Boarding complete case: We need to let the arrival airport know that flight is about to land,
     if (msg.notification.completionStatus == 2)
     {
-
+        printf("i, ATC will now send arrival msg to arr airport\n");
         msg.msg_type = msg.plane.arrivalAirport + 10;
+        msg.notification.flag =4;
         msg.notification.kill_status = 0;
         msg.notification.completionStatus = 2;
 
