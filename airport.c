@@ -1,4 +1,3 @@
-// updated one
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -60,6 +59,11 @@ struct ArrivalArgs
     struct msg_buffer message;
     struct Runway *runways;
     int numRunways;
+};
+
+struct RunwayArgs
+{
+    int planeID, selectedRunway, airportNumber;
 };
 
 void *handleDeparture(void *arg)
@@ -127,6 +131,36 @@ void *handleArrival(void *arg)
     return NULL;
 }
 
+void* handlePlaneDep(void *arg){
+    struct RunwayArgs *planeArg = (struct RunwayArgs*) arg;
+    sleep(3); // using the runway
+    printf("Plane %d has completed boarding/loading and taken off from Runway No. %d of Airport No. %d.\n", planeArg->planeID, planeArg->selectedRunway, planeArg->airportNumber);
+    // simulate takeoff
+    sleep(2);
+}
+
+void* handleRunwayD(void* arg){
+    pthread_t plane;
+    struct RunwayArgs *planeArg = (struct RunwayArgs*) arg;
+    pthread_create(&plane, NULL, handlePlaneDep, (void*) planeArg);
+    pthread_join(plane, NULL);
+}
+
+void* handlePlaneArr(void *arg){
+    struct RunwayArgs *planeArg = (struct RunwayArgs*) arg;
+    sleep(5); // plane in-flight
+    sleep(3); // using the runway
+
+    printf("Plane %d has landed on Runway No. %d of Airport No. %d  and has completed deboarding/unloading.\n", planeArg->planeID, planeArg->selectedRunway, planeArg->airportNumber);
+}
+
+void* handleRunwayA(void* arg){
+    pthread_t plane;
+    struct RunwayArgs *planeArg = (struct RunwayArgs*) arg;
+    pthread_create(&plane, NULL, handlePlaneArr, (void*) arg);
+    pthread_join(plane, NULL);
+}
+
 int main()
 {
     int airportNumber;
@@ -158,6 +192,8 @@ int main()
     // Array to hold the capacity of each runway
     struct Runway runways[runwaysCount + 1];
 
+    pthread_t runwayThreads[runwaysCount+1];
+
     // Backup runway always at index 0
     runways[0].loadCapacity = 15000;
     runways[0].isAvailable = 1;
@@ -181,7 +217,7 @@ int main()
             runways[i + 1].loadCapacity = temp[i];
             runways[i + 1].isAvailable = 1;
         }
-        if (sem_init(&runways[i].semaphore, 0, 0) != 0)
+        if (sem_init(&runways[i].semaphore, 0, 1) != 0)
         {
             printf("Error in initializing semaphore for runway %d\n", i);
             return 1;
@@ -223,17 +259,42 @@ int main()
         // Plane wants to depart from this airport
         if (message.notification.flag==3 && message.notification.completionStatus == 1)
         {
+            printf("Inside if block\n");
             struct DepartureArgs departure;
             departure.message = message;
             departure.runways = runways;
             departure.numRunways = runwaysCount;
 
-            pthread_t departure_thread;
-            if (pthread_create(&departure_thread, NULL, handleDeparture, (void *)&departure) != 0)
-            {
-                printf("Error in creating thread for plane %d\n", message.plane.planeID);
-                return 1;
+            int selectedFinalRunway = 0;
+            for(int i = 0; i<=runwaysCount; i++){
+                if (departure.message.plane.totalPlaneWeight <= departure.runways[i].loadCapacity)
+                {
+                    if (departure.runways[i].loadCapacity < departure.runways[selectedFinalRunway].loadCapacity)
+                    {
+                        selectedFinalRunway = i;
+                    }
+                }
             }
+            printf("selected runway = %d\n", selectedFinalRunway);
+
+            struct RunwayArgs runwayArgs;
+            runwayArgs.airportNumber = airportNumber;
+            runwayArgs.planeID = message.plane.planeID;
+            runwayArgs.selectedRunway = selectedFinalRunway;
+
+            sem_wait(&runways[selectedFinalRunway].semaphore);
+            printf("Creating thread now...\n");
+            pthread_create(&runwayThreads[selectedFinalRunway], NULL, handleRunwayD, (void*)&runwayArgs);
+            pthread_join(runwayThreads[selectedFinalRunway], NULL);
+            printf("Thread completed\n");
+            sem_post(&runways[selectedFinalRunway].semaphore);
+
+            // pthread_t departure_thread;
+            // if (pthread_create(&departure_thread, NULL, handleDeparture, (void *)&departure) != 0)
+            // {
+            //     printf("Error in creating thread for plane %d\n", message.plane.planeID);
+            //     return 1;
+            // }
 
             
             // send arrival message to arrival airport
@@ -249,7 +310,7 @@ int main()
             }
             printf("arrival inbound message sent to ATC\n");
             
-            pthread_join(departure_thread, NULL);
+           
         }
         // Plane wants to arrive to this airport
         else if (message.notification.flag==4 && message.notification.completionStatus == 2)
@@ -260,14 +321,39 @@ int main()
             arrival.runways = runways;
             arrival.numRunways = runwaysCount;
 
-            pthread_t arrival_thread;
-            if (pthread_create(&arrival_thread, NULL, handleArrival, (void *)&arrival) != 0)
-            {
-                printf("Error in creating thread for plane %d\n", message.plane.planeID);
-                return 1;
+            int selectedFinalRunway = 0;
+            for(int i = 0; i<=runwaysCount; i++){
+                if (arrival.message.plane.totalPlaneWeight <= arrival.runways[i].loadCapacity)
+                {
+                    if (arrival.runways[i].loadCapacity < arrival.runways[selectedFinalRunway].loadCapacity)
+                    {
+                        selectedFinalRunway = i;
+                    }
+                }
             }
 
-            pthread_join(arrival_thread, NULL);
+            printf("selected runway arrival= %d\n", selectedFinalRunway);
+
+            struct RunwayArgs runwayArgs;
+            runwayArgs.airportNumber = airportNumber;
+            runwayArgs.planeID = message.plane.planeID;
+            runwayArgs.selectedRunway = selectedFinalRunway;
+
+            sem_wait(&runways[selectedFinalRunway].semaphore);
+            printf("Creating thread now arrival...\n");
+            pthread_create(&runwayThreads[selectedFinalRunway], NULL, handleRunwayA, (void*)&runwayArgs);
+            pthread_join(runwayThreads[selectedFinalRunway], NULL);
+            printf("Thread completed arrival\n");
+            sem_post(&runways[selectedFinalRunway].semaphore);
+
+            // pthread_t arrival_thread;
+            // if (pthread_create(&arrival_thread, NULL, handleArrival, (void *)&arrival) != 0)
+            // {
+            //     printf("Error in creating thread for plane %d\n", message.plane.planeID);
+            //     return 1;
+            // }
+
+            // pthread_join(arrival_thread, NULL);
             // send arrival message to ATC
             message.msg_type = airportNumber + 20;
             message.notification.completionStatus = 4;
