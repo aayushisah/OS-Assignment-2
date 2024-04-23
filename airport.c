@@ -206,8 +206,10 @@ int main()
     while (airportactive == 1)
     {
         // Receives the message from the message queue with the flight details
-        while (msgrcv(msgid, &message, sizeof(message), airportNumber + 10, 0) == -1)
+        while(msgrcv(msgid, &message, sizeof(message), airportNumber + 10, 0) == -1)
         {
+        printf("Error in receiving message\n");
+        //     exit(1);
         }
         // if (msgrcv(msgid, &message, sizeof(message), airportNumber+10, 0) == -1)
         // {
@@ -234,7 +236,7 @@ int main()
             pthread_join(departure_thread, NULL);
 
             // send arrival message to arrival airport
-            message.msg_type = airportNumber + 40;
+            message.msg_type = message.msg_type + 10;
             message.notification.completionStatus = 2;
             if (msgsnd(msgid, &message, sizeof(message), 0) == -1)
             {

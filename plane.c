@@ -284,14 +284,16 @@ int main()
         exit(1);
     }
     printf("departure message sent to ATC\n");
-    if (msgrcv(msgid, &message, sizeof(message), planeID+20, 0))
+    
+    
+    /*if (msgrcv(msgid, &message, sizeof(message), planeID+30, 0))
     {
         if (message.notification.kill_status == 2)
         {
             printf("Departure not possible");
             return 0;
         }
-    }
+    }*/
     // Simulate the boarding/loading process
     sleep(BOARDING_TIME); // Boarding/loading process
 

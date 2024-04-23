@@ -42,8 +42,8 @@ struct msg_buffer
 };
 
 // Function prototypes
-void process_amsg(struct msg_buffer, int msg_queue_id);                                      // planes
-void process_pmsg(struct msg_buffer, int msg_queue_id);                                      // airports
+void stage2(struct msg_buffer, int msg_queue_id);                                      // planes
+void stage4(struct msg_buffer, int msg_queue_id);                                      // airports
 void process_tmsg(struct msg_buffer, int active_planes, int num_airports, int msg_queue_id); // termination
 void process_aft_termination_req(struct msg_buffer, int msg_queue_id);                       // planes
 
@@ -92,10 +92,10 @@ int main()
         }
 
         if (msg.msg_type >= 1 && msg.msg_type <= 10)
-        { // Processing a_message from planes when termination not requested yet
+        { // Plane to ATC was received, now stage 2 begins
             if (!termination_requested)
             {
-                process_amsg(msg, msg_queue_id);
+                stage2(msg, msg_queue_id);
                 active_planes++;
             }
 
@@ -107,9 +107,9 @@ int main()
             }
         }
 
-        if (msg.msg_type >= 11 && msg.msg_type <= 20)
-            // Processing p_message from airports
-            process_pmsg(msg, msg_queue_id);
+        if (msg.msg_type >=21 && msg.msg_type <= 30)
+            // Airport to ATC was done, now srage 4 begins
+            stage4(msg, msg_queue_id);
 
         // Receiving termination message
         if (!termination_requested && msg.msg_type == 404)
@@ -136,11 +136,12 @@ int main()
 
 // Function to process a_message from plane
 // Plane sends message to atc only once, so only one case : atc extracts the info from plane message and forwards it to the departure airport using p_message
-void process_amsg(struct msg_buffer msg, int msg_queue_id)
+void stage2(struct msg_buffer msg, int msg_queue_id)
 {
 
     printf("Received flight begin message from plane: %d \n", msg.plane.planeID);
-    msg.msg_type = msg.plane.planeID+20;
+    printf("type is %d, i will make it %d", msg.msg_type, msg.msg_type+10);
+    /*msg.msg_type = msg.msg_type+10;
     msg.notification.kill_status = 0;
 
     // Sending the new a_message
@@ -148,8 +149,8 @@ void process_amsg(struct msg_buffer msg, int msg_queue_id)
     {
         perror("msgsnd");
         exit(1);
-    }
-    msg.msg_type = msg.plane.departureAirport + 10;
+    } */
+    msg.msg_type = msg.msg_type + 10;
     msg.notification.kill_status = 0;
     msg.notification.completionStatus = 1;
 
@@ -159,21 +160,19 @@ void process_amsg(struct msg_buffer msg, int msg_queue_id)
         perror("msgsnd");
         exit(1);
     }
-
-    printf("Forwarded a_message to airport.c with pl_ID: %d, dep_ID: %d, and arr_ID: %d\n", msg.plane.planeID, msg.plane.departureAirport, msg.plane.arrivalAirport);
 }
 
 // Function to process p_message from airports
 // Now there are two cases when atc receives a message from plane : one when boarding complete and one when deboarding complete
-void process_pmsg(struct msg_buffer msg, int msg_queue_id)
+void stage4(struct msg_buffer msg, int msg_queue_id)
 {
 
     // Deboarding complete case: We need to let the plane know that it needs to shut down, for this airport.c needs to send dest_ID as 0 because plane would go nowhere next)
     if (msg.notification.completionStatus == 4)
     {
         // Prepare the new a_message
-
-        msg.msg_type = msg.plane.planeID;
+	printf("type is %d, i will make it %d", msg.msg_type, msg.msg_type+10);
+        msg.msg_type = msg.msg_type+10;
         msg.notification.kill_status = 1;
         msg.notification.completionStatus = 4;
 
