@@ -23,7 +23,7 @@ struct PlaneInfo
     int totalPlaneWeight;
 };
 struct NotificationMessage
-{
+{   int flag;
     int kill_status;      // 0: don't kill, 1: self kill for plane/airport, 2: force kill for plane
     int completionStatus; // This field can indicate the status of the deboarding/unloading process
     // 1 : departure plane started boarding
@@ -41,7 +41,7 @@ struct msg_buffer
 int main()
 {
     key_t key;
-    int msg_queue_id;
+    
     struct msg_buffer msg;
     char var;
     key = ftok("plane.c", 'x');
@@ -51,7 +51,7 @@ int main()
         exit(1);
     }
 
-    msg_queue_id = msgget(key, 0666 | IPC_CREAT); // Create a message queue
+    const int msg_queue_id = msgget(key, 0666 | IPC_CREAT); // Create a message queue
     if (msg_queue_id == -1)
     {
         perror("msgget");
@@ -61,10 +61,23 @@ int main()
     while (1)
     {
         printf("Do you want the Air Traffic Control System to terminate? (Y for Yes and N for No)\n");
-        scanf("%s", &var);
+        scanf(" %c", &var);
 
-        msg.msg_type = 404;
-        if (var == "Y")
+        msg.msg_type = 100;
+        msg.notification.flag = 2;
+        msg.notification.completionStatus = 100;
+        msg.plane.planeID =0;
+        msg.plane.planeType = 0;
+        msg.plane.numOccupiedSeats = 0;
+        msg.plane.totalLuggageWeight = 0;
+        msg.plane.totalPassengerWeight = 0;
+        msg.plane.totalCrewWeight = 0;
+        msg.plane.departureAirport = 0;
+        msg.plane.arrivalAirport = 0;
+        msg.plane.totalPlaneWeight = 0;
+        msg.notification.kill_status = 0;
+ 
+        if (var == 'Y')
         {
             if (msgsnd(msg_queue_id, &msg, sizeof(struct msg_buffer), 0) == -1)
             { // Send message to the message queue
@@ -72,7 +85,8 @@ int main()
                 exit(EXIT_FAILURE);
             }
 
-            break;
+            return 0;
+
         }
     }
 
