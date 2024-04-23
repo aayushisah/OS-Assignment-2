@@ -71,21 +71,20 @@ void *handleDeparture(void *arg)
 
     for (int i = 0; i <= departure->numRunways; i++)
     {
+        pthread_mutex_lock(&departure->runways[i].mutex);
         if (departure->message.plane.totalPlaneWeight <= departure->runways[i].loadCapacity && departure->runways[i].isAvailable)
         {
-            if (selectedRunway == 0 || departure->runways[i].loadCapacity < departure->runways[selectedRunway].loadCapacity)
+            if (departure->runways[i].loadCapacity < departure->runways[selectedRunway].loadCapacity)
             {
-                if (selectedRunway != 0)
-                {
-                    // Mark the previously selected runway as available again
-                    departure->runways[selectedRunway].isAvailable = 1;
-                }
+                pthread_mutex_unlock(&departure->runways[selectedRunway].mutex);
+                // Mark the previously selected runway as available again
+                departure->runways[selectedRunway].isAvailable = 1;
+
                 selectedRunway = i;
                 // Mark the current runway as unavailable
                 departure->runways[i].isAvailable = 0;
             }
         }
-        pthread_mutex_unlock(&departure->runways[i].mutex);
     }
     printf("Best runway for planeID %d is %d\n", planeID, selectedRunway);
 
@@ -97,7 +96,7 @@ void *handleDeparture(void *arg)
     // simulate takeoff
     sleep(2);
     // Reset the availability flag of the selected runway
-    pthread_mutex_lock(&departure->runways[selectedRunway].mutex);
+
     departure->runways[selectedRunway].isAvailable = 1; // Mark the runway as available
     pthread_mutex_unlock(&departure->runways[selectedRunway].mutex);
 
@@ -117,19 +116,17 @@ void *handleArrival(void *arg)
         pthread_mutex_lock(&arrival->runways[i].mutex);
         if (arrival->message.plane.totalPlaneWeight <= arrival->runways[i].loadCapacity && arrival->runways[i].isAvailable)
         {
-            if (selectedRunway == 0 || arrival->runways[i].loadCapacity < arrival->runways[selectedRunway].loadCapacity)
+            if (arrival->runways[i].loadCapacity < arrival->runways[selectedRunway].loadCapacity)
             {
-                if (selectedRunway != 0)
-                {
-                    // Mark the previously selected runway as available again
-                    arrival->runways[selectedRunway].isAvailable = 1;
-                }
+                pthread_mutex_unlock(&arrival->runways[selectedRunway].mutex);
+                // Mark the previously selected runway as available again
+                arrival->runways[selectedRunway].isAvailable = 1;
+
                 selectedRunway = i;
                 // Mark the current runway as unavailable
                 arrival->runways[i].isAvailable = 0;
             }
         }
-        pthread_mutex_unlock(&arrival->runways[i].mutex);
     }
 
     sem_wait(&arrival->runways[selectedRunway].semaphore);
@@ -137,8 +134,7 @@ void *handleArrival(void *arg)
     sem_post(&arrival->runways[selectedRunway].semaphore);
 
     printf("Plane %d has landed on Runway No. %d of Airport No. %d  and has completed deboarding/unloading.\n", planeID, selectedRunway, airportNumber);
-    // Reset the availability flag of the selected runway
-    pthread_mutex_lock(&arrival->runways[selectedRunway].mutex);
+
     arrival->runways[selectedRunway].isAvailable = 1; // Mark the runway as available
     pthread_mutex_unlock(&arrival->runways[selectedRunway].mutex);
 
