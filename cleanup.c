@@ -63,7 +63,7 @@ int main()
         printf("Do you want the Air Traffic Control System to terminate? (Y for Yes and N for No)\n");
         scanf("%s", &var);
 
-        mesg.msg_type = 404;
+        msg.msg_type = 404;
         if (var == "Y")
         {
             if (msgsnd(msg_queue_id, &msg, sizeof(struct msg_buffer), 0) == -1)
