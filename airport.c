@@ -27,6 +27,7 @@ struct PlaneInfo
 
 struct NotificationMessage
 {
+    int flag;
     int kill_status;
     int completionStatus; // This field can indicate the status of the deboarding/unloading process
 };
@@ -97,6 +98,7 @@ void *handleDeparture(void *arg)
 
 void *handleArrival(void *arg)
 {
+    printf("arrival airport is handling arrival\n");
     struct ArrivalArgs *arrival = (struct ArrivalArgs *)arg;
     int selectedRunway = 0;
     int planeID = arrival->message.plane.planeID;
@@ -114,8 +116,9 @@ void *handleArrival(void *arg)
             }
         }
     }
-
+    printf("best fit is runway %d\n", selectedRunway);
     sem_wait(&arrival->runways[selectedRunway].semaphore);
+    sleep(5); // plane in-flight
     sleep(3); // using the runway
     sem_post(&arrival->runways[selectedRunway].semaphore);
 
@@ -208,18 +211,17 @@ int main()
         // Receives the message from the message queue with the flight details
         while(msgrcv(msgid, &message, sizeof(message), airportNumber + 10, 0) == -1)
         {
-        printf("Error in receiving message\n");
-        //     exit(1);
         }
+ printf("msg received with type: %d and status: %d\n", message.msg_type, message.notification.completionStatus);
         // if (msgrcv(msgid, &message, sizeof(message), airportNumber+10, 0) == -1)
         // {
         //     printf("Error in receiving message\n");
         //     exit(1);
         // }
-        printf("message received\n");
+       
         printf("plane is saying depart from %d & arrive to %d\n", message.plane.departureAirport, message.plane.arrivalAirport);
         // Plane wants to depart from this airport
-        if (message.plane.departureAirport == airportNumber && message.notification.completionStatus == 1)
+        if (message.notification.flag==3 && message.notification.completionStatus == 1)
         {
             struct DepartureArgs departure;
             departure.message = message;
@@ -233,21 +235,26 @@ int main()
                 return 1;
             }
 
-            pthread_join(departure_thread, NULL);
-
+            
             // send arrival message to arrival airport
-            message.msg_type = message.msg_type + 10;
+         //   message.msg_type = airportNumber + 20;
+            message.msg_type = 100;
+            message.notification.flag = 1;
             message.notification.completionStatus = 2;
+
             if (msgsnd(msgid, &message, sizeof(message), 0) == -1)
             {
                 printf("error in sending arrival message\n");
                 exit(1);
             }
             printf("arrival inbound message sent to ATC\n");
+            
+            pthread_join(departure_thread, NULL);
         }
         // Plane wants to arrive to this airport
-        else if (message.plane.arrivalAirport == airportNumber && message.notification.completionStatus == 2)
+        else if (message.notification.flag==4 && message.notification.completionStatus == 2)
         {
+            printf("ATC told me flight inbound\n");
             struct ArrivalArgs arrival;
             arrival.message = message;
             arrival.runways = runways;
@@ -261,8 +268,8 @@ int main()
             }
 
             pthread_join(arrival_thread, NULL);
-            // send arrival message to arrival airport
-            message.msg_type = airportNumber + 40;
+            // send arrival message to ATC
+            message.msg_type = airportNumber + 20;
             message.notification.completionStatus = 4;
             if (msgsnd(msgid, &message, sizeof(message), 0) == -1)
             {
