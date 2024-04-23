@@ -140,7 +140,7 @@ void process_amsg(struct msg_buffer msg, int msg_queue_id)
 {
 
     printf("Received flight begin message from plane: %d \n", msg.plane.planeID);
-    msg.msg_type = msg.plane.planeID;
+    msg.msg_type = msg.plane.planeID+20;
     msg.notification.kill_status = 0;
 
     // Sending the new a_message
@@ -248,7 +248,7 @@ void process_tmsg(struct msg_buffer msg, int active_planes, int num_airports, in
 void process_aft_termination_req(struct msg_buffer msg, int msg_queue_id)
 {
 
-    msg.msg_type = msg.plane.planeID;
+    msg.msg_type = msg.plane.planeID+30;
     msg.notification.kill_status = 2;
 
     // Sending the new a_message
