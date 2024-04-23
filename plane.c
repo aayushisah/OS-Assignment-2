@@ -284,7 +284,7 @@ int main()
         exit(1);
     }
     printf("departure message sent to ATC\n");
-    if (msgrcv(msgid, &message, sizeof(message), planeID, 0))
+    if (msgrcv(msgid, &message, sizeof(message), planeID+20, 0))
     {
         if (message.notification.kill_status == 2)
         {
@@ -306,7 +306,7 @@ int main()
     // Receive notification from the plane process
     sleep(DEBOARDING_TIME); // deboarding/unloading process
 
-    msgrcv(msgid, &message, sizeof(message), planeID, 0);
+    msgrcv(msgid, &message, sizeof(message), planeID+30, 0);
 
     if (message.notification.kill_status == 2)
     {
