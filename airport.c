@@ -71,18 +71,13 @@ void *handleDeparture(void *arg)
 
     for (int i = 0; i <= departure->numRunways; i++)
     {
-        pthread_mutex_lock(&departure->runways[i].mutex);
-        if (departure->message.plane.totalPlaneWeight <= departure->runways[i].loadCapacity && departure->runways[i].isAvailable)
+        
+        if (departure->message.plane.totalPlaneWeight <= departure->runways[i].loadCapacity)
         {
             if (departure->runways[i].loadCapacity < departure->runways[selectedRunway].loadCapacity)
             {
-                pthread_mutex_unlock(&departure->runways[selectedRunway].mutex);
-                // Mark the previously selected runway as available again
-                departure->runways[selectedRunway].isAvailable = 1;
-
                 selectedRunway = i;
-                // Mark the current runway as unavailable
-                departure->runways[i].isAvailable = 0;
+
             }
         }
     }
@@ -95,10 +90,7 @@ void *handleDeparture(void *arg)
     printf("Plane %d has completed boarding/loading and taken off from Runway No. %d of Airport No. %d.\n", planeID, selectedRunway, airportNumber);
     // simulate takeoff
     sleep(2);
-    // Reset the availability flag of the selected runway
 
-    departure->runways[selectedRunway].isAvailable = 1; // Mark the runway as available
-    pthread_mutex_unlock(&departure->runways[selectedRunway].mutex);
 
     return NULL;
 }
@@ -113,18 +105,12 @@ void *handleArrival(void *arg)
     // finding best fit runway
     for (int i = 0; i <= arrival->numRunways; i++)
     {
-        pthread_mutex_lock(&arrival->runways[i].mutex);
-        if (arrival->message.plane.totalPlaneWeight <= arrival->runways[i].loadCapacity && arrival->runways[i].isAvailable)
+        if (arrival->message.plane.totalPlaneWeight <= arrival->runways[i].loadCapacity)
         {
             if (arrival->runways[i].loadCapacity < arrival->runways[selectedRunway].loadCapacity)
             {
-                pthread_mutex_unlock(&arrival->runways[selectedRunway].mutex);
-                // Mark the previously selected runway as available again
-                arrival->runways[selectedRunway].isAvailable = 1;
-
                 selectedRunway = i;
-                // Mark the current runway as unavailable
-                arrival->runways[i].isAvailable = 0;
+            
             }
         }
     }
@@ -134,9 +120,6 @@ void *handleArrival(void *arg)
     sem_post(&arrival->runways[selectedRunway].semaphore);
 
     printf("Plane %d has landed on Runway No. %d of Airport No. %d  and has completed deboarding/unloading.\n", planeID, selectedRunway, airportNumber);
-
-    arrival->runways[selectedRunway].isAvailable = 1; // Mark the runway as available
-    pthread_mutex_unlock(&arrival->runways[selectedRunway].mutex);
 
     return NULL;
 }
@@ -195,13 +178,12 @@ int main()
             runways[i + 1].loadCapacity = temp[i];
             runways[i + 1].isAvailable = 1;
         }
-        if (sem_init(&runways[i].semaphore, 0, 1) != 0)
+        if (sem_init(&runways[i].semaphore, 0, 0) != 0)
         {
             printf("Error in initializing semaphore for runway %d\n", i);
             return 1;
         }
-        pthread_mutex_init(&runways[i].mutex, NULL);
-        printf("runway %d has limit %d\n", i + 1, runways[i + 1].loadCapacity);
+        printf("runway %d has limit %d\n", i, runways[i].loadCapacity);
     }
 
     // Logic to receive message from ATC
@@ -252,7 +234,7 @@ int main()
             pthread_join(departure_thread, NULL);
 
             // send arrival message to arrival airport
-            message.msg_type = airportNumber + 10;
+            message.msg_type = airportNumber + 40;
             message.notification.completionStatus = 2;
             if (msgsnd(msgid, &message, sizeof(message), 0) == -1)
             {
@@ -278,7 +260,7 @@ int main()
 
             pthread_join(arrival_thread, NULL);
             // send arrival message to arrival airport
-            message.msg_type = airportNumber + 10;
+            message.msg_type = airportNumber + 40;
             message.notification.completionStatus = 4;
             if (msgsnd(msgid, &message, sizeof(message), 0) == -1)
             {
