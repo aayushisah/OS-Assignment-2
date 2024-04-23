@@ -71,7 +71,7 @@ void *handleDeparture(void *arg)
 
     for (int i = 0; i <= departure->numRunways; i++)
     {
-        if (departure->message.plane.totalPlaneWeight <= departure->runways[i].loadCapacity && &&arrival->runways[i].isAvailable)
+        if (departure->message.plane.totalPlaneWeight <= departure->runways[i].loadCapacity && departure->runways[i].isAvailable)
         {
             if (selectedRunway == 0 || departure->runways[i].loadCapacity < departure->runways[selectedRunway].loadCapacity)
             {
